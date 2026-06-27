@@ -41,7 +41,12 @@ export default function Apartments({ data, add, update, remove, user, members })
 
   const aptTasks = tasks.filter(t => t.apt === apt)
   const filtered = filter === 'all' ? aptTasks : aptTasks.filter(t => t.assignee === filter)
-  const sorted = [...filtered].sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1
+    const dateA = a.dueDate || '9999'
+    const dateB = b.dueDate || '9999'
+    return dateA.localeCompare(dateB)
+  })
 
   function addTask(e) {
     e.preventDefault()
