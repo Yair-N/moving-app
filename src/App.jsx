@@ -70,6 +70,7 @@ export default function App() {
   const [householdId, setHouseholdId] = useState(null)
   const [householdLoading, setHouseholdLoading] = useState(true)
   const [tab, setTab] = useState('dashboard')
+  const [slideDir, setSlideDir] = useState(null)
   const [members, setMembers] = useState({})
   const [data, setData] = useState({
     tasks: [],
@@ -147,20 +148,25 @@ export default function App() {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
   }, [])
 
+  const switchTab = useCallback((newTab, dir) => {
+    if (newTab === tab) return
+    setSlideDir(dir)
+    setTimeout(() => {
+      setTab(newTab)
+      setTimeout(() => setSlideDir(null), 300)
+    }, 10)
+  }, [tab])
+
   const handleTouchEnd = useCallback((e) => {
     if (!touchStart.current) return
     const dx = e.changedTouches[0].clientX - touchStart.current.x
     const dy = e.changedTouches[0].clientY - touchStart.current.y
     touchStart.current = null
     if (Math.abs(dx) < 80 || Math.abs(dy) > Math.abs(dx)) return
-    setTab(prev => {
-      const idx = tabIds.indexOf(prev)
-      // RTL: swipe right = next tab, swipe left = previous tab
-      if (dx > 0 && idx < tabIds.length - 1) return tabIds[idx + 1]
-      if (dx < 0 && idx > 0) return tabIds[idx - 1]
-      return prev
-    })
-  }, [tabIds])
+    const idx = tabIds.indexOf(tab)
+    if (dx > 0 && idx < tabIds.length - 1) switchTab(tabIds[idx + 1], 'slide-left')
+    else if (dx < 0 && idx > 0) switchTab(tabIds[idx - 1], 'slide-right')
+  }, [tabIds, tab, switchTab])
 
   const add = (col, obj) => addDoc(collection(db, 'households', householdId, col), { ...obj, createdAt: serverTimestamp() })
   const update = (col, id, obj) => updateDoc(doc(db, 'households', householdId, col, id), obj)
@@ -188,7 +194,7 @@ export default function App() {
         </span>
       </div>
 
-      <div className="page-content" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <div className={`page-content ${slideDir || ''}`} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {tab === 'dashboard'  && <Dashboard  {...screenProps} />}
         {tab === 'apartments' && <Apartments {...screenProps} />}
         {tab === 'packing'    && <Packing    {...screenProps} />}
@@ -201,7 +207,12 @@ export default function App() {
           <button
             key={t.id}
             className={`nav-item ${tab === t.id ? 'active' : ''}`}
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              const oldIdx = tabIds.indexOf(tab)
+              const newIdx = tabIds.indexOf(t.id)
+              if (oldIdx === newIdx) return
+              switchTab(t.id, newIdx > oldIdx ? 'slide-left' : 'slide-right')
+            }}
           >
             <span className="nav-icon">{t.icon}</span>
             <span className="nav-label">{t.label}</span>
