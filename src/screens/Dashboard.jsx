@@ -3,11 +3,11 @@ import DateInput from '../components/DateInput'
 
 function daysUntil(dateStr) {
   if (!dateStr) return null
-  const target = new Date(dateStr)
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const target = new Date(y, m - 1, d)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24))
-  return diff
+  return Math.round((target - today) / (1000 * 60 * 60 * 24))
 }
 
 const HEBREW_DAYS = ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת']
@@ -59,7 +59,7 @@ export default function Dashboard({ data, saveMeta, members }) {
                 <strong>{t.name}</strong>
                 {assigneeName && <span style={{ color: 'var(--text-secondary)', marginRight: 8, fontSize: 12 }}>({assigneeName})</span>}
                 <span style={{ color: 'var(--urgent)', marginRight: 8, fontSize: 12 }}>
-                  {daysUntil(t.dueDate) === 0 ? 'היום!' : `עוד ${daysUntil(t.dueDate)} ימים`}
+                  {daysUntil(t.dueDate) === 0 ? 'היום!' : daysUntil(t.dueDate) === 1 ? 'מחר' : `עוד ${daysUntil(t.dueDate)} ימים`}
                 </span>
               </div>
             )
