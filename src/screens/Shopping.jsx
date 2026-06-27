@@ -4,7 +4,7 @@ import Fab from '../components/Fab'
 
 const MARKETPLACES = ['יד2', 'פייסבוק מרקטפלייס', 'מדף', 'אחר']
 
-export default function Shopping({ data, add, update, remove }) {
+export default function Shopping({ data, add, update, remove, tab }) {
   const { itemsForSale, shoppingList } = data
   const [modal, setModal] = useState(null)
 
@@ -113,7 +113,7 @@ export default function Shopping({ data, add, update, remove }) {
       <Fab actions={[
         { icon: '💰', label: 'פריט למכירה', onClick: openAddSale },
         { icon: '🛍️', label: 'פריט לקנייה', onClick: openAddShop },
-      ]} />
+      ]} pulse={tab} />
 
       <FormModal
         isOpen={!!modal}

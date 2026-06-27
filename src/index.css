@@ -8,7 +8,7 @@
   --bg: #f5f0eb;
   --white: #ffffff;
   --navy: #2d4a6b;
-  --terra: #c17f5a;
+  --terra: #3b6d9c;
   --text: #1a1a1a;
   --text-muted: #888;
   --border: #e0d8d0;
@@ -348,7 +348,7 @@ select.input { appearance: none; cursor: pointer; }
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.4);
   z-index: 200;
-  display: flex; align-items: flex-end; justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   animation: modalFadeIn 0.2s ease-out;
 }
 .modal-overlay.closing { animation: modalFadeOut 0.2s ease-in forwards; }
@@ -356,12 +356,12 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--bg);
   width: 100%; max-width: 480px;
   max-height: 85vh;
-  border-radius: 20px 20px 0 0;
-  padding: 20px 16px calc(env(safe-area-inset-bottom) + 16px);
+  border-radius: 16px;
+  padding: 20px 16px; margin: 0 16px;
   overflow-y: auto;
-  animation: modalSlideUp 0.25s ease-out;
+  animation: modalPopIn 0.25s ease-out;
 }
-.modal-panel.closing { animation: modalSlideDown 0.2s ease-in forwards; }
+.modal-panel.closing { animation: modalPopOut 0.2s ease-in forwards; }
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 16px;
@@ -377,8 +377,8 @@ select.input { appearance: none; cursor: pointer; }
 
 @keyframes modalFadeIn { from { opacity: 0 } to { opacity: 1 } }
 @keyframes modalFadeOut { from { opacity: 1 } to { opacity: 0 } }
-@keyframes modalSlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
-@keyframes modalSlideDown { from { transform: translateY(0) } to { transform: translateY(100%) } }
+@keyframes modalPopIn { from { opacity: 0; transform: scale(0.9) } to { opacity: 1; transform: scale(1) } }
+@keyframes modalPopOut { from { opacity: 1; transform: scale(1) } to { opacity: 0; transform: scale(0.9) } }
 
 /* FAB */
 .fab {
@@ -392,12 +392,13 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--terra); color: white; border: none;
   font-size: 30px; font-weight: 300; line-height: 1;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(193,127,90,0.4);
+  box-shadow: 0 4px 12px rgba(59,109,156,0.4);
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.2s, background 0.2s;
 }
 .fab-main:active { transform: scale(0.92); }
-.fab-main.open { transform: rotate(45deg); background: var(--navy); }
+.fab-main.open { transform: rotate(45deg); background: var(--navy); animation: none; }
+.fab-main.pulse { animation: fabPulse 1.5s ease-out; }
 .fab-actions {
   position: absolute; bottom: 64px; left: 0;
   display: flex; flex-direction: column; gap: 12px;
@@ -424,6 +425,11 @@ select.input { appearance: none; cursor: pointer; }
 .fab-backdrop {
   position: fixed; inset: 0; z-index: 98;
   background: rgba(0,0,0,0.15);
+}
+@keyframes fabPulse {
+  0% { box-shadow: 0 0 0 0 rgba(59,109,156,0.6); }
+  70% { box-shadow: 0 0 0 18px rgba(59,109,156,0); }
+  100% { box-shadow: 0 0 0 0 rgba(59,109,156,0); }
 }
 @keyframes fabPop {
   from { opacity: 0; transform: translateY(20px) scale(0.8); }

@@ -13,7 +13,7 @@ function formatDate(str) {
   return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
-export default function Apartments({ data, add, update, remove, user, members }) {
+export default function Apartments({ data, add, update, remove, user, members, tab }) {
   const { tasks, contacts } = data
   const [apt, setApt] = useState('leaving')
   const [filter, setFilter] = useState('all')
@@ -130,7 +130,10 @@ export default function Apartments({ data, add, update, remove, user, members })
       </div>
 
       <div className="card">
-        <div className="card-title">אנשי קשר ומתקינים 📞</div>
+        <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          אנשי קשר ומתקינים 📞
+          <button className="btn btn-outline" onClick={openAddContact} style={{ padding: '4px 12px', fontSize: 12 }}>+ הוסף</button>
+        </div>
         {contacts.length === 0 ? (
           <p className="empty-state">אין אנשי קשר עדיין</p>
         ) : (
@@ -146,10 +149,7 @@ export default function Apartments({ data, add, update, remove, user, members })
         )}
       </div>
 
-      <Fab actions={[
-        { icon: '📋', label: 'משימה', onClick: openAddTask },
-        { icon: '📞', label: 'איש קשר', onClick: openAddContact },
-      ]} />
+      <Fab onClick={openAddTask} pulse={tab} />
 
       <FormModal
         isOpen={!!modal}

@@ -180,7 +180,7 @@ export default function App() {
   if (householdLoading) return <div className="auth-screen"><div className="auth-emoji">🏠</div></div>
   if (!householdId) return <HouseholdSetup user={user} onComplete={setHouseholdId} />
 
-  const screenProps = { data, add, update, remove, saveMeta, user, members }
+  const screenProps = { data, add, update, remove, saveMeta, user, members, tab }
 
   return (
     <div className="app">

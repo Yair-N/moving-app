@@ -30,7 +30,7 @@ function TimeInput({ value, onChange }) {
 
 const EMPTY_EVENT = { title: '', date: '', time: '', location: '', notes: '' }
 
-export default function CalendarScreen({ data, add, update, remove }) {
+export default function CalendarScreen({ data, add, update, remove, tab }) {
   const { events } = data
   const [modal, setModal] = useState(null)
 
@@ -107,7 +107,7 @@ export default function CalendarScreen({ data, add, update, remove }) {
         ))
       )}
 
-      <Fab onClick={openAdd} />
+      <Fab onClick={openAdd} pulse={tab} />
 
       <FormModal
         isOpen={!!modal}

@@ -8,7 +8,7 @@ function firstName(fullName) {
   return (fullName || '').split(' ')[0] || '?'
 }
 
-export default function Packing({ data, add, update, remove, saveMeta, members }) {
+export default function Packing({ data, add, update, remove, saveMeta, members, tab }) {
   const { boxes } = data
   const [filterRoom, setFilterRoom] = useState('all')
   const [filterOwner, setFilterOwner] = useState('all')
@@ -143,7 +143,7 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
         </div>
       )}
 
-      <Fab onClick={openAdd} />
+      <Fab onClick={openAdd} pulse={tab} />
 
       <FormModal
         isOpen={!!modal}
