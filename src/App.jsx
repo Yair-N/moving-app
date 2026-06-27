@@ -155,9 +155,9 @@ export default function App() {
     if (Math.abs(dx) < 80 || Math.abs(dy) > Math.abs(dx)) return
     setTab(prev => {
       const idx = tabIds.indexOf(prev)
-      // RTL: swipe right = previous tab (lower index), swipe left = next tab
-      if (dx > 0 && idx > 0) return tabIds[idx - 1]
-      if (dx < 0 && idx < tabIds.length - 1) return tabIds[idx + 1]
+      // RTL: swipe right = next tab, swipe left = previous tab
+      if (dx > 0 && idx < tabIds.length - 1) return tabIds[idx + 1]
+      if (dx < 0 && idx > 0) return tabIds[idx - 1]
       return prev
     })
   }, [tabIds])

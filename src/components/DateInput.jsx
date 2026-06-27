@@ -55,13 +55,11 @@ export default function DateInput({ value, onChange, placeholder, className }) {
   }
 
   function openPicker() {
-    if (nativeRef.current?.showPicker) {
-      nativeRef.current.showPicker()
-    }
+    nativeRef.current?.showPicker?.()
   }
 
   return (
-    <div style={{ position: 'relative', flex: 1 }}>
+    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
       <input
         className={className || 'input'}
         placeholder={placeholder || 'DD/MM/YYYY'}
@@ -70,22 +68,30 @@ export default function DateInput({ value, onChange, placeholder, className }) {
         onBlur={handleBlur}
         inputMode="numeric"
         maxLength={10}
+        style={{ paddingLeft: 32 }}
       />
       <input
         ref={nativeRef}
         type="date"
         value={value || ''}
         onChange={handleNativeChange}
+        tabIndex={-1}
+        style={{ position: 'absolute', visibility: 'hidden', width: 0, height: 0 }}
+      />
+      <button
+        type="button"
+        onClick={openPicker}
         style={{
           position: 'absolute',
-          top: 0, right: 0, bottom: 0, left: 0,
-          opacity: 0,
-          width: '100%',
-          height: '100%',
+          left: 6,
+          background: 'none',
+          border: 'none',
           cursor: 'pointer',
+          fontSize: 18,
+          padding: 4,
+          color: 'var(--text-muted)',
         }}
-        tabIndex={-1}
-      />
+      >📅</button>
     </div>
   )
 }

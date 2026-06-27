@@ -112,6 +112,7 @@ html, body {
 }
 .input:focus { border-color: var(--navy); }
 .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.input-row > * { flex: 1; min-width: 0; }
 .input-row .input { margin-bottom: 0; }
 .input-group { margin-bottom: 10px; }
 .input-label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; display: block; }
@@ -149,7 +150,7 @@ select.input { appearance: none; cursor: pointer; }
   color: var(--text-muted);
   transition: color 0.15s;
 }
-.nav-item.active { color: var(--terra); }
+.nav-item.active { color: var(--terra); font-weight: 700; border-top: 3px solid var(--terra); margin-top: -3px; }
 .nav-icon { font-size: 22px; line-height: 1; }
 .nav-label { font-size: 10px; font-weight: 600; }
 
