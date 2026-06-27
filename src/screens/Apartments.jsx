@@ -106,9 +106,9 @@ export default function Apartments({ data, add, update, remove, user, members })
   }
 
   function badgeClass(assignee) {
-    if (assignee === 'all') return 'badge-both'
-    const idx = Object.keys(members).indexOf(assignee)
-    return idx === 0 ? 'badge-his' : idx === 1 ? 'badge-hers' : 'badge-both'
+    if (assignee === 'all') return 'badge-all'
+    if (assignee === user.uid) return 'badge-self'
+    return 'badge-other'
   }
 
   return (
