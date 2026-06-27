@@ -1,105 +1,113 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-const ROOMS = ['מטבח', 'סלון', 'חדר שינה', 'חדר ילדים', 'שירותים/אמבטיה', 'מחסן', 'משרד', 'אחר']
+const DEFAULT_ROOMS = ['מטבח', 'סלון', 'חדר שינה', 'חדר אמבטיה', 'מחסן', 'משרד']
 
-export default function Packing({ data, add, update, remove, saveMeta }) {
-  const { boxes, movingCompany } = data
+function firstName(fullName) {
+  return (fullName || '').split(' ')[0] || '?'
+}
 
-  // Moving company form state
-  const mc = movingCompany || {}
-  const [mcName, setMcName] = useState(mc.name || '')
-  const [mcPhone, setMcPhone] = useState(mc.phone || '')
-  const [mcPrice, setMcPrice] = useState(mc.price || '')
-  const [mcDate, setMcDate] = useState(mc.date || '')
-  const [mcPaid, setMcPaid] = useState(mc.depositPaid || false)
-
-  // Box form state
-  const [boxNum, setBoxNum] = useState('')
-  const [boxRoom, setBoxRoom] = useState(ROOMS[0])
+export default function Packing({ data, add, update, remove, saveMeta, members }) {
+  const { boxes } = data
+  const [boxRoom, setBoxRoom] = useState('')
   const [boxDesc, setBoxDesc] = useState('')
   const [boxFragile, setBoxFragile] = useState(false)
+  const [boxOwner, setBoxOwner] = useState('all')
+  const [filterRoom, setFilterRoom] = useState('all')
+  const [filterOwner, setFilterOwner] = useState('all')
+  const [editingId, setEditingId] = useState(null)
+  const [editRoom, setEditRoom] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editFragile, setEditFragile] = useState(false)
+  const [editOwner, setEditOwner] = useState('all')
+  const [customRooms, setCustomRooms] = useState([])
 
-  function saveMc(field, val) {
-    const updated = { name: mcName, phone: mcPhone, price: mcPrice, date: mcDate, depositPaid: mcPaid, [field]: val }
-    saveMeta('movingCompany', updated)
+  const memberEntries = Object.entries(members)
+
+  useEffect(() => {
+    if (data.settings?.customRooms) setCustomRooms(data.settings.customRooms)
+  }, [data.settings?.customRooms])
+
+  const usedRooms = [...new Set(boxes.map(b => b.room).filter(Boolean))]
+  const allRooms = [...new Set([...DEFAULT_ROOMS, ...customRooms, ...usedRooms])]
+
+  const nextNumber = boxes.length > 0
+    ? Math.max(...boxes.map(b => Number(b.number) || 0)) + 1
+    : 1
+
+  function saveRoom(room) {
+    if (room && !DEFAULT_ROOMS.includes(room) && !customRooms.includes(room)) {
+      const updated = [...customRooms, room]
+      setCustomRooms(updated)
+      saveMeta('settings', { customRooms: updated })
+    }
   }
 
   function addBox(e) {
     e.preventDefault()
-    if (!boxNum.trim() && !boxDesc.trim()) return
-    const num = boxNum.trim() || String(boxes.length + 1)
-    add('boxes', { number: num, room: boxRoom, description: boxDesc.trim(), fragile: boxFragile })
-    setBoxNum(''); setBoxDesc(''); setBoxFragile(false)
+    if (!boxRoom.trim()) return
+    saveRoom(boxRoom.trim())
+    add('boxes', {
+      number: String(nextNumber),
+      room: boxRoom.trim(),
+      description: boxDesc.trim(),
+      fragile: boxFragile,
+      owner: boxOwner,
+    })
+    setBoxDesc('')
+    setBoxFragile(false)
   }
 
-  const sortedBoxes = [...boxes].sort((a, b) => Number(a.number) - Number(b.number))
+  function startEdit(b) {
+    setEditingId(b.id)
+    setEditRoom(b.room || '')
+    setEditDesc(b.description || '')
+    setEditFragile(b.fragile || false)
+    setEditOwner(b.owner || 'all')
+  }
+
+  function saveEdit(id) {
+    if (!editRoom.trim()) return
+    saveRoom(editRoom.trim())
+    update('boxes', id, {
+      room: editRoom.trim(),
+      description: editDesc.trim(),
+      fragile: editFragile,
+      owner: editOwner,
+    })
+    setEditingId(null)
+  }
+
+  let filtered = [...boxes]
+  if (filterRoom !== 'all') filtered = filtered.filter(b => b.room === filterRoom)
+  if (filterOwner !== 'all') filtered = filtered.filter(b => b.owner === filterOwner)
+  const sorted = filtered.sort((a, b) => Number(a.number) - Number(b.number))
+
+  const roomCounts = boxes.reduce((acc, b) => { acc[b.room] = (acc[b.room] || 0) + 1; return acc }, {})
 
   return (
     <>
       <div className="page-header">
-        <h1>📦 ארזה</h1>
+        <h1>📦 אריזה</h1>
       </div>
 
-      {/* Moving company */}
+      {/* Add box */}
       <div className="card">
-        <div className="card-title">פרטי חברת ההובלה 🚛</div>
-        <div className="input-group">
-          <label className="input-label">שם החברה</label>
-          <input className="input" value={mcName} placeholder="שם החברה"
-            onChange={e => { setMcName(e.target.value); saveMc('name', e.target.value) }} />
-        </div>
-        <div className="input-row">
-          <div style={{ flex: 1 }}>
-            <label className="input-label">טלפון</label>
-            <input className="input" value={mcPhone} placeholder="טלפון"
-              onChange={e => { setMcPhone(e.target.value); saveMc('phone', e.target.value) }} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="input-label">מחיר מוסכם</label>
-            <input className="input" value={mcPrice} placeholder="₪"
-              onChange={e => { setMcPrice(e.target.value); saveMc('price', e.target.value) }} />
-          </div>
-        </div>
-        <div className="input-group">
-          <label className="input-label">תאריך ושעה</label>
-          <input type="datetime-local" className="input" value={mcDate}
-            onChange={e => { setMcDate(e.target.value); saveMc('date', e.target.value) }} />
-        </div>
-        <div className="checkbox-row">
-          <input type="checkbox" id="deposit" checked={mcPaid}
-            onChange={e => { setMcPaid(e.target.checked); saveMc('depositPaid', e.target.checked) }} />
-          <label htmlFor="deposit">שולם פיקדון</label>
-        </div>
-      </div>
-
-      {/* Boxes */}
-      <div className="card">
-        <div className="card-title">מעקב ארגזים 📦</div>
-        {sortedBoxes.length === 0 ? (
-          <p className="empty-state">אין ארגזים עדיין</p>
-        ) : (
-          sortedBoxes.map(b => (
-            <div key={b.id} className="box-item">
-              <div className="box-num">#{b.number}</div>
-              <div className="box-info">
-                <div className="box-desc">{b.description || '(ללא תיאור)'} {b.fragile ? '⚠️' : ''}</div>
-                <div className="box-room">{b.room}</div>
-              </div>
-              <button className="task-delete" onClick={() => remove('boxes', b.id)}>✕</button>
-            </div>
-          ))
-        )}
-
-        <div className="section-divider" style={{ marginTop: 12 }}>הוסף ארגז</div>
+        <div className="card-title">הוסף ארגז #{nextNumber} ➕</div>
         <form onSubmit={addBox}>
           <div className="input-row">
-            <div style={{ flex: '0 0 90px' }}>
-              <input className="input" placeholder="מספר" value={boxNum}
-                onChange={e => setBoxNum(e.target.value)} type="number" min="1" />
-            </div>
-            <select className="input" value={boxRoom} onChange={e => setBoxRoom(e.target.value)}>
-              {ROOMS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <input className="input" list="room-list" placeholder="חדר" value={boxRoom}
+              onChange={e => setBoxRoom(e.target.value)} />
+            <datalist id="room-list">
+              {allRooms.map(r => <option key={r} value={r} />)}
+            </datalist>
+            {memberEntries.length > 1 && (
+              <select className="input" value={boxOwner} onChange={e => setBoxOwner(e.target.value)}>
+                <option value="all">כולם</option>
+                {memberEntries.map(([uid, name]) => (
+                  <option key={uid} value={uid}>{firstName(name)}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="input-group">
             <input className="input" placeholder="תיאור תוכן" value={boxDesc}
@@ -113,6 +121,96 @@ export default function Packing({ data, add, update, remove, saveMeta }) {
           <button type="submit" className="btn btn-primary">הוסף ארגז</button>
         </form>
       </div>
+
+      {/* Filters */}
+      {boxes.length > 0 && (
+        <div className="filter-row" style={{ flexWrap: 'wrap' }}>
+          <button className={`filter-pill ${filterRoom === 'all' ? 'active' : ''}`}
+            onClick={() => setFilterRoom('all')}>הכל ({boxes.length})</button>
+          {Object.entries(roomCounts).sort(([,a],[,b]) => b - a).map(([room, count]) => (
+            <button key={room} className={`filter-pill ${filterRoom === room ? 'active' : ''}`}
+              onClick={() => setFilterRoom(room)}>
+              {room} ({count})
+            </button>
+          ))}
+          {memberEntries.length > 1 && (
+            <>
+              <span style={{ width: '100%', height: 0 }} />
+              <button className={`filter-pill ${filterOwner === 'all' ? 'active' : ''}`}
+                onClick={() => setFilterOwner('all')}>כל המשפחה</button>
+              {memberEntries.map(([uid, name]) => (
+                <button key={uid} className={`filter-pill ${filterOwner === uid ? 'active' : ''}`}
+                  onClick={() => setFilterOwner(uid)}>
+                  {firstName(name)}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Box list */}
+      {sorted.length > 0 && (
+        <div className="card">
+          <div className="card-title">ארגזים ({sorted.length})</div>
+          {sorted.map(b => {
+            const ownerName = b.owner === 'all' ? '' : members[b.owner] ? firstName(members[b.owner]) : ''
+
+            if (editingId === b.id) {
+              return (
+                <div key={b.id} className="box-item" style={{ flexWrap: 'wrap', gap: 8, padding: '12px 0' }}>
+                  <div className="box-num">#{b.number}</div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="input-row" style={{ margin: 0 }}>
+                      <input className="input" list="room-list-edit" value={editRoom}
+                        placeholder="חדר" onChange={e => setEditRoom(e.target.value)} />
+                      <datalist id="room-list-edit">
+                        {allRooms.map(r => <option key={r} value={r} />)}
+                      </datalist>
+                      {memberEntries.length > 1 && (
+                        <select className="input" value={editOwner} onChange={e => setEditOwner(e.target.value)}>
+                          <option value="all">כולם</option>
+                          {memberEntries.map(([uid, name]) => (
+                            <option key={uid} value={uid}>{firstName(name)}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    <input className="input" placeholder="תיאור תוכן" value={editDesc}
+                      onChange={e => setEditDesc(e.target.value)} style={{ margin: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className="checkbox-row" style={{ margin: 0, flex: 1 }}>
+                        <input type="checkbox" id={`edit-fragile-${b.id}`} checked={editFragile}
+                          onChange={e => setEditFragile(e.target.checked)} />
+                        <label htmlFor={`edit-fragile-${b.id}`}>⚠️ שביר</label>
+                      </div>
+                      <button className="btn btn-primary" onClick={() => saveEdit(b.id)}
+                        style={{ padding: '6px 16px', fontSize: 13 }}>שמור</button>
+                      <button className="btn btn-outline" onClick={() => setEditingId(null)}
+                        style={{ padding: '6px 16px', fontSize: 13 }}>ביטול</button>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
+            return (
+              <div key={b.id} className="box-item" onClick={() => startEdit(b)} style={{ cursor: 'pointer' }}>
+                <div className="box-num">#{b.number}</div>
+                <div className="box-info">
+                  <div className="box-desc">
+                    {b.description || '(ללא תיאור)'} {b.fragile ? '⚠️' : ''}
+                  </div>
+                  <div className="box-room">
+                    {b.room}{ownerName ? ` · ${ownerName}` : ''}
+                  </div>
+                </div>
+                <button className="task-delete" onClick={e => { e.stopPropagation(); remove('boxes', b.id) }}>✕</button>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Stats */}
       {boxes.length > 0 && (
@@ -129,9 +227,7 @@ export default function Packing({ data, add, update, remove, saveMeta }) {
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>שבירים</div>
             </div>
-            {Object.entries(
-              boxes.reduce((acc, b) => { acc[b.room] = (acc[b.room] || 0) + 1; return acc }, {})
-            ).sort(([,a],[,b]) => b-a).slice(0, 3).map(([room, count]) => (
+            {Object.entries(roomCounts).sort(([,a],[,b]) => b - a).slice(0, 4).map(([room, count]) => (
               <div key={room} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--terra)' }}>{count}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{room}</div>

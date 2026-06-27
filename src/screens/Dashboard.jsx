@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import DateInput from '../components/DateInput'
 
 function daysUntil(dateStr) {
   if (!dateStr) return null
@@ -9,11 +10,15 @@ function daysUntil(dateStr) {
   return diff
 }
 
-const HEBREW_MONTHS = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ']
+const HEBREW_DAYS = ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת']
 
-export default function Dashboard({ data, saveMeta }) {
+export default function Dashboard({ data, saveMeta, members }) {
   const { tasks, settings, events } = data
   const [dateInput, setDateInput] = useState(settings.moveDate || '')
+
+  useEffect(() => {
+    if (settings.moveDate) setDateInput(settings.moveDate)
+  }, [settings.moveDate])
 
   const days = daysUntil(settings.moveDate)
   const total = tasks.length
@@ -56,12 +61,7 @@ export default function Dashboard({ data, saveMeta }) {
         )}
         <div className="input-group" style={{ marginTop: 12 }}>
           <label className="input-label">תאריך מעבר</label>
-          <input
-            type="date"
-            className="input"
-            value={dateInput}
-            onChange={e => saveDate(e.target.value)}
-          />
+          <DateInput className="input" value={dateInput} onChange={saveDate} />
         </div>
       </div>
 
@@ -80,14 +80,18 @@ export default function Dashboard({ data, saveMeta }) {
         {urgent.length === 0 ? (
           <p className="empty-state">🎉 אין משימות דחופות</p>
         ) : (
-          urgent.map(t => (
-            <div key={t.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
-              <strong>{t.name}</strong>
-              <span style={{ color: 'var(--urgent)', marginRight: 8, fontSize: 12 }}>
-                {daysUntil(t.dueDate) === 0 ? 'היום!' : `עוד ${daysUntil(t.dueDate)} ימים`}
-              </span>
-            </div>
-          ))
+          urgent.map(t => {
+            const assigneeName = t.assignee === 'all' ? 'כולם' : members[t.assignee] ? (members[t.assignee]).split(' ')[0] : ''
+            return (
+              <div key={t.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
+                <strong>{t.name}</strong>
+                {assigneeName && <span style={{ color: 'var(--text-secondary)', marginRight: 8, fontSize: 12 }}>({assigneeName})</span>}
+                <span style={{ color: 'var(--urgent)', marginRight: 8, fontSize: 12 }}>
+                  {daysUntil(t.dueDate) === 0 ? 'היום!' : `עוד ${daysUntil(t.dueDate)} ימים`}
+                </span>
+              </div>
+            )
+          })
         )}
       </div>
 
@@ -97,15 +101,19 @@ export default function Dashboard({ data, saveMeta }) {
           <div className="card-title">אירועים קרובים 📅</div>
           {upcomingEvents.map(e => {
             const d = new Date(e.date)
+            const dayName = HEBREW_DAYS[d.getDay()]
+            const dateStr = d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
             return (
               <div key={e.id} className="event-item">
                 <div className="event-date-block">
                   <div className="event-day">{d.getDate()}</div>
-                  <div className="event-month">{HEBREW_MONTHS[d.getMonth()]}</div>
+                  <div className="event-month">{dayName}</div>
                 </div>
                 <div className="event-body">
                   <div className="event-title">{e.title}</div>
-                  {e.time && <div className="event-time">{e.time}{e.location ? ` • ${e.location}` : ''}</div>}
+                  <div className="event-time">
+                    {dateStr}{e.time ? ` • ${e.time}` : ''}{e.location ? ` • ${e.location}` : ''}
+                  </div>
                 </div>
               </div>
             )

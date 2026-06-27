@@ -27,6 +27,43 @@ export const auth = getAuth(app)
 export const db = getFirestore(app)
 
 const provider = new GoogleAuthProvider()
+provider.addScope('https://www.googleapis.com/auth/calendar')
 
 export const loginWithGoogle = () => signInWithPopup(auth, provider)
 export const logout = () => signOut(auth)
+
+export const getCalendarToken = async () => {
+  const result = await signInWithPopup(auth, provider)
+  return GoogleAuthProvider.credentialFromResult(result)?.accessToken
+}
+
+export async function pushEventsToGoogleCalendar(accessToken, events) {
+  const results = []
+  for (const ev of events) {
+    const startDate = ev.date?.includes('T') ? ev.date : ev.date
+    const hasTime = !!ev.time
+    const body = {
+      summary: ev.title,
+      location: ev.location || undefined,
+      description: ev.notes || undefined,
+    }
+    if (hasTime) {
+      const dateTime = `${ev.date}T${ev.time}:00`
+      body.start = { dateTime, timeZone: 'Asia/Jerusalem' }
+      body.end = { dateTime, timeZone: 'Asia/Jerusalem' }
+    } else {
+      body.start = { date: ev.date }
+      body.end = { date: ev.date }
+    }
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+    results.push({ title: ev.title, ok: res.ok })
+  }
+  return results
+}

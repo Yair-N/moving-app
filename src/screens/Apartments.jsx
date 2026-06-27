@@ -1,35 +1,30 @@
 import { useState } from 'react'
+import DateInput from '../components/DateInput'
 
-const ASSIGNEE_OPTS = [
-  { value: 'both', label: 'שנינו', badge: 'badge-both' },
-  { value: 'his', label: 'שלו', badge: 'badge-his' },
-  { value: 'hers', label: 'שלה', badge: 'badge-hers' },
-]
-
-const FILTER_OPTS = [
-  { value: 'all', label: 'הכל' },
-  { value: 'his', label: '👤 שלו' },
-  { value: 'hers', label: '👤 שלה' },
-  { value: 'both', label: '👥 שנינו' },
-]
+function firstName(fullName) {
+  return (fullName || '').split(' ')[0] || '?'
+}
 
 function formatDate(str) {
   if (!str) return ''
   const d = new Date(str)
-  return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
-export default function Apartments({ data, add, update, remove }) {
+export default function Apartments({ data, add, update, remove, user, members }) {
   const { tasks, contacts } = data
-  const [apt, setApt] = useState('leaving') // 'leaving' | 'new'
+  const [apt, setApt] = useState('leaving')
   const [filter, setFilter] = useState('all')
   const [taskName, setTaskName] = useState('')
   const [taskDate, setTaskDate] = useState('')
-  const [taskAssignee, setTaskAssignee] = useState('both')
+  const [taskAssignee, setTaskAssignee] = useState('all')
   const [contactName, setContactName] = useState('')
   const [contactProf, setContactProf] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [contactMeeting, setContactMeeting] = useState('')
+  const [contactTime, setContactTime] = useState('')
+
+  const memberEntries = Object.entries(members)
 
   const aptTasks = tasks.filter(t => t.apt === apt)
   const filtered = filter === 'all' ? aptTasks : aptTasks.filter(t => t.assignee === filter)
@@ -41,7 +36,7 @@ export default function Apartments({ data, add, update, remove }) {
     add('tasks', { name: taskName.trim(), apt, assignee: taskAssignee, dueDate: taskDate, done: false })
     setTaskName('')
     setTaskDate('')
-    setTaskAssignee('both')
+    setTaskAssignee('all')
   }
 
   function toggleTask(t) {
@@ -51,11 +46,22 @@ export default function Apartments({ data, add, update, remove }) {
   function addContact(e) {
     e.preventDefault()
     if (!contactName.trim()) return
-    add('contacts', { name: contactName.trim(), profession: contactProf.trim(), phone: contactPhone.trim(), meeting: contactMeeting })
-    setContactName(''); setContactProf(''); setContactPhone(''); setContactMeeting('')
+    const meeting = contactMeeting && contactTime ? `${contactMeeting} ${contactTime}` : contactMeeting
+    add('contacts', { name: contactName.trim(), profession: contactProf.trim(), phone: contactPhone.trim(), meeting })
+    setContactName(''); setContactProf(''); setContactPhone(''); setContactMeeting(''); setContactTime('')
   }
 
-  const aptContacts = contacts // contacts shared across both apartments
+  function assigneeLabel(assignee) {
+    if (assignee === 'all') return 'כולם'
+    if (members[assignee]) return firstName(members[assignee])
+    return assignee
+  }
+
+  function badgeClass(assignee) {
+    if (assignee === 'all') return 'badge-both'
+    const idx = Object.keys(members).indexOf(assignee)
+    return idx === 0 ? 'badge-his' : idx === 1 ? 'badge-hers' : 'badge-both'
+  }
 
   return (
     <>
@@ -63,51 +69,47 @@ export default function Apartments({ data, add, update, remove }) {
         <h1>🏠 דירות</h1>
       </div>
 
-      {/* Apartment toggle */}
       <div className="tab-toggle">
         <button className={`tab-btn ${apt === 'leaving' ? 'active' : ''}`} onClick={() => setApt('leaving')}>
-          הדירה העזובה
+          דירה שעוזבים
         </button>
         <button className={`tab-btn ${apt === 'new' ? 'active' : ''}`} onClick={() => setApt('new')}>
-          הדירה החדשה
+          דירה שנכנסים
         </button>
       </div>
 
-      {/* Filter */}
       <div className="filter-row">
-        {FILTER_OPTS.map(f => (
-          <button key={f.value} className={`filter-pill ${filter === f.value ? 'active' : ''}`} onClick={() => setFilter(f.value)}>
-            {f.label}
+        <button className={`filter-pill ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>
+          הכל
+        </button>
+        {memberEntries.map(([uid, name]) => (
+          <button key={uid} className={`filter-pill ${filter === uid ? 'active' : ''}`} onClick={() => setFilter(uid)}>
+            👤 {firstName(name)}
           </button>
         ))}
       </div>
 
-      {/* Task list */}
       <div className="card">
         <div className="card-title">משימות</div>
         {sorted.length === 0 ? (
           <p className="empty-state">אין משימות עדיין</p>
         ) : (
-          sorted.map(t => {
-            const a = ASSIGNEE_OPTS.find(o => o.value === t.assignee) || ASSIGNEE_OPTS[0]
-            return (
-              <div key={t.id} className="task-item">
-                <div className={`task-check ${t.done ? 'done' : ''}`} onClick={() => toggleTask(t)}>
-                  {t.done && '✓'}
-                </div>
-                <div className="task-body">
-                  <div className={`task-name ${t.done ? 'done' : ''}`}>{t.name}</div>
-                  {t.dueDate && <div className="task-meta">📅 {formatDate(t.dueDate)}</div>}
-                </div>
-                <span className={`task-badge ${a.badge}`}>{a.label}</span>
-                <button className="task-delete" onClick={() => remove('tasks', t.id)}>✕</button>
+          sorted.map(t => (
+            <div key={t.id} className="task-item">
+              <div className={`task-check ${t.done ? 'done' : ''}`} onClick={() => toggleTask(t)}>
+                {t.done && '✓'}
               </div>
-            )
-          })
+              <div className="task-body">
+                <div className={`task-name ${t.done ? 'done' : ''}`}>{t.name}</div>
+                {t.dueDate && <div className="task-meta">📅 {formatDate(t.dueDate)}</div>}
+              </div>
+              <span className={`task-badge ${badgeClass(t.assignee)}`}>{assigneeLabel(t.assignee)}</span>
+              <button className="task-delete" onClick={() => remove('tasks', t.id)}>✕</button>
+            </div>
+          ))
         )}
       </div>
 
-      {/* Add task */}
       <div className="card">
         <div className="card-title">הוסף משימה ➕</div>
         <form onSubmit={addTask}>
@@ -115,22 +117,24 @@ export default function Apartments({ data, add, update, remove }) {
             <input className="input" placeholder="שם המשימה" value={taskName} onChange={e => setTaskName(e.target.value)} />
           </div>
           <div className="input-row">
-            <input type="date" className="input" value={taskDate} onChange={e => setTaskDate(e.target.value)} />
+            <DateInput className="input" value={taskDate} onChange={setTaskDate} />
             <select className="input" value={taskAssignee} onChange={e => setTaskAssignee(e.target.value)}>
-              {ASSIGNEE_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="all">כולם</option>
+              {memberEntries.map(([uid, name]) => (
+                <option key={uid} value={uid}>{firstName(name)}</option>
+              ))}
             </select>
           </div>
           <button type="submit" className="btn btn-primary">הוסף</button>
         </form>
       </div>
 
-      {/* Contacts */}
       <div className="card">
         <div className="card-title">אנשי קשר ומתקינים 📞</div>
-        {aptContacts.length === 0 ? (
+        {contacts.length === 0 ? (
           <p className="empty-state">אין אנשי קשר עדיין</p>
         ) : (
-          aptContacts.map(c => (
+          contacts.map(c => (
             <div key={c.id} className="contact-item">
               <div className="contact-name">{c.name}</div>
               {c.profession && <div className="contact-meta">{c.profession}</div>}
@@ -150,8 +154,13 @@ export default function Apartments({ data, add, update, remove }) {
             <input className="input" placeholder="מקצוע (אינטרנט, גז...)" value={contactProf} onChange={e => setContactProf(e.target.value)} />
             <input className="input" placeholder="טלפון" value={contactPhone} onChange={e => setContactPhone(e.target.value)} />
           </div>
-          <div className="input-group">
-            <input type="datetime-local" className="input" value={contactMeeting} onChange={e => setContactMeeting(e.target.value)} />
+          <div className="input-row">
+            <DateInput className="input" value={contactMeeting} onChange={setContactMeeting} />
+            <input className="input" placeholder="שעה (14:00)" value={contactTime || ''} onChange={e => {
+              const v = e.target.value.replace(/[^0-9:]/g, '')
+              if (v.length === 2 && !v.includes(':') && (contactTime || '').length < 2) setContactTime(v + ':')
+              else setContactTime(v.slice(0, 5))
+            }} inputMode="numeric" maxLength={5} />
           </div>
           <button type="submit" className="btn btn-secondary">הוסף איש קשר</button>
         </form>
