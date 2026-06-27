@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import DateInput from '../components/DateInput'
+import FormModal from '../components/FormModal'
+import Fab from '../components/Fab'
 
 const HEBREW_DAYS = ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת']
 
@@ -26,41 +28,31 @@ function TimeInput({ value, onChange }) {
   )
 }
 
+const EMPTY_EVENT = { title: '', date: '', time: '', location: '', notes: '' }
+
 export default function CalendarScreen({ data, add, update, remove }) {
   const { events } = data
-  const [title, setTitle] = useState('')
-  const [date, setDate] = useState('')
-  const [time, setTime] = useState('')
-  const [location, setLocation] = useState('')
-  const [notes, setNotes] = useState('')
+  const [modal, setModal] = useState(null)
 
-  const [editingId, setEditingId] = useState(null)
-  const [eeTitle, setEeTitle] = useState('')
-  const [eeDate, setEeDate] = useState('')
-  const [eeTime, setEeTime] = useState('')
-  const [eeLocation, setEeLocation] = useState('')
-  const [eeNotes, setEeNotes] = useState('')
+  const setField = (key, val) => setModal(prev => prev ? { ...prev, fields: { ...prev.fields, [key]: val } } : prev)
 
-  function addEvent(e) {
-    e.preventDefault()
+  function openAdd() {
+    setModal({ mode: 'add', fields: { ...EMPTY_EVENT } })
+  }
+
+  function openEdit(ev) {
+    setModal({ mode: 'edit', id: ev.id, fields: { title: ev.title, date: ev.date, time: ev.time || '', location: ev.location || '', notes: ev.notes || '' } })
+  }
+
+  function handleSave() {
+    if (!modal) return
+    const { title, date, time, location, notes } = modal.fields
     if (!title.trim() || !date) return
-    add('events', { title: title.trim(), date, time, location: location.trim(), notes: notes.trim() })
-    setTitle(''); setDate(''); setTime(''); setLocation(''); setNotes('')
-  }
-
-  function startEdit(ev) {
-    setEditingId(ev.id)
-    setEeTitle(ev.title || '')
-    setEeDate(ev.date || '')
-    setEeTime(ev.time || '')
-    setEeLocation(ev.location || '')
-    setEeNotes(ev.notes || '')
-  }
-
-  function saveEdit(id) {
-    if (!eeTitle.trim() || !eeDate) return
-    update('events', id, { title: eeTitle.trim(), date: eeDate, time: eeTime, location: eeLocation.trim(), notes: eeNotes.trim() })
-    setEditingId(null)
+    if (modal.mode === 'add') {
+      add('events', { title: title.trim(), date, time, location: location.trim(), notes: notes.trim() })
+    } else {
+      update('events', modal.id, { title: title.trim(), date, time, location: location.trim(), notes: notes.trim() })
+    }
   }
 
   const sorted = [...events].sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -80,29 +72,6 @@ export default function CalendarScreen({ data, add, update, remove }) {
         <h1>📅 לוח זמנים</h1>
       </div>
 
-      <div className="card">
-        <div className="card-title">הוסף אירוע ➕</div>
-        <form onSubmit={addEvent}>
-          <div className="input-group">
-            <input className="input" placeholder="שם האירוע" value={title}
-              onChange={e => setTitle(e.target.value)} />
-          </div>
-          <div className="input-row">
-            <DateInput className="input" value={date} onChange={setDate} />
-            <TimeInput value={time} onChange={setTime} />
-          </div>
-          <div className="input-group">
-            <input className="input" placeholder="מיקום (אופציונלי)" value={location}
-              onChange={e => setLocation(e.target.value)} />
-          </div>
-          <div className="input-group">
-            <input className="input" placeholder="הערות (אופציונלי)" value={notes}
-              onChange={e => setNotes(e.target.value)} />
-          </div>
-          <button type="submit" className="btn btn-primary">הוסף אירוע</button>
-        </form>
-      </div>
-
       {sorted.length === 0 ? (
         <div className="card">
           <p className="empty-state">אין אירועים מתוכננים</p>
@@ -113,33 +82,10 @@ export default function CalendarScreen({ data, add, update, remove }) {
             <div className="section-divider">{group.label}</div>
             <div className="card">
               {group.events.map(ev => {
-                if (editingId === ev.id) {
-                  return (
-                    <div key={ev.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                      <div className="input-group" style={{ marginBottom: 8 }}>
-                        <input className="input" value={eeTitle} onChange={e => setEeTitle(e.target.value)} />
-                      </div>
-                      <div className="input-row" style={{ marginBottom: 8 }}>
-                        <DateInput className="input" value={eeDate} onChange={setEeDate} />
-                        <TimeInput value={eeTime} onChange={setEeTime} />
-                      </div>
-                      <div className="input-group" style={{ marginBottom: 8 }}>
-                        <input className="input" placeholder="מיקום" value={eeLocation} onChange={e => setEeLocation(e.target.value)} />
-                      </div>
-                      <div className="input-group" style={{ marginBottom: 8 }}>
-                        <input className="input" placeholder="הערות" value={eeNotes} onChange={e => setEeNotes(e.target.value)} />
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button className="btn btn-primary" onClick={() => saveEdit(ev.id)} style={{ padding: '6px 16px', fontSize: 13 }}>שמור</button>
-                        <button className="btn btn-outline" onClick={() => setEditingId(null)} style={{ padding: '6px 16px', fontSize: 13 }}>ביטול</button>
-                      </div>
-                    </div>
-                  )
-                }
                 const d = new Date(ev.date)
                 const dayName = HEBREW_DAYS[d.getDay()]
                 return (
-                  <div key={ev.id} className="event-item" onClick={() => startEdit(ev)} style={{ cursor: 'pointer' }}>
+                  <div key={ev.id} className="event-item" onClick={() => openEdit(ev)} style={{ cursor: 'pointer' }}>
                     <div className="event-date-block">
                       <div className="event-day">{d.getDate()}</div>
                       <div className="event-month">{dayName}</div>
@@ -160,6 +106,37 @@ export default function CalendarScreen({ data, add, update, remove }) {
           </div>
         ))
       )}
+
+      <Fab onClick={openAdd} />
+
+      <FormModal
+        isOpen={!!modal}
+        onClose={() => setModal(null)}
+        onSave={handleSave}
+        title={modal?.mode === 'edit' ? 'עריכת אירוע' : 'הוסף אירוע'}
+        saveLabel={modal?.mode === 'edit' ? 'שמור' : 'הוסף'}
+      >
+        {modal && (
+          <>
+            <div className="input-group">
+              <input className="input" placeholder="שם האירוע" value={modal.fields.title}
+                onChange={e => setField('title', e.target.value)} />
+            </div>
+            <div className="input-row">
+              <DateInput className="input" value={modal.fields.date} onChange={v => setField('date', v)} />
+              <TimeInput value={modal.fields.time} onChange={v => setField('time', v)} />
+            </div>
+            <div className="input-group">
+              <input className="input" placeholder="מיקום (אופציונלי)" value={modal.fields.location}
+                onChange={e => setField('location', e.target.value)} />
+            </div>
+            <div className="input-group">
+              <input className="input" placeholder="הערות (אופציונלי)" value={modal.fields.notes}
+                onChange={e => setField('notes', e.target.value)} />
+            </div>
+          </>
+        )}
+      </FormModal>
     </>
   )
 }

@@ -1,65 +1,42 @@
 import { useState } from 'react'
+import FormModal from '../components/FormModal'
+import Fab from '../components/Fab'
 
 const MARKETPLACES = ['יד2', 'פייסבוק מרקטפלייס', 'מדף', 'אחר']
 
 export default function Shopping({ data, add, update, remove }) {
   const { itemsForSale, shoppingList } = data
+  const [modal, setModal] = useState(null)
 
-  const [saleName, setSaleName] = useState('')
-  const [salePrice, setSalePrice] = useState('')
-  const [saleMkt, setSaleMkt] = useState(MARKETPLACES[0])
+  const setField = (key, val) => setModal(prev => prev ? { ...prev, fields: { ...prev.fields, [key]: val } } : prev)
 
-  const [shopName, setShopName] = useState('')
-  const [shopBudget, setShopBudget] = useState('')
-
-  // Edit sale item
-  const [editSaleId, setEditSaleId] = useState(null)
-  const [esName, setEsName] = useState('')
-  const [esPrice, setEsPrice] = useState('')
-  const [esMkt, setEsMkt] = useState('')
-
-  // Edit shop item
-  const [editShopId, setEditShopId] = useState(null)
-  const [eshName, setEshName] = useState('')
-  const [eshBudget, setEshBudget] = useState('')
-
-  function addSaleItem(e) {
-    e.preventDefault()
-    if (!saleName.trim()) return
-    add('itemsForSale', { name: saleName.trim(), price: salePrice, marketplace: saleMkt, sold: false })
-    setSaleName(''); setSalePrice(''); setSaleMkt(MARKETPLACES[0])
+  function openAddSale() {
+    setModal({ mode: 'add', type: 'sale', fields: { name: '', price: '', marketplace: MARKETPLACES[0] } })
+  }
+  function openAddShop() {
+    setModal({ mode: 'add', type: 'shop', fields: { name: '', budget: '' } })
+  }
+  function openEditSale(item) {
+    setModal({ mode: 'edit', type: 'sale', id: item.id, fields: { name: item.name, price: item.price || '', marketplace: item.marketplace || MARKETPLACES[0] } })
+  }
+  function openEditShop(item) {
+    setModal({ mode: 'edit', type: 'shop', id: item.id, fields: { name: item.name, budget: item.budget || '' } })
   }
 
-  function startEditSale(item) {
-    setEditSaleId(item.id)
-    setEsName(item.name || '')
-    setEsPrice(item.price || '')
-    setEsMkt(item.marketplace || MARKETPLACES[0])
-  }
+  function handleSave() {
+    if (!modal) return
+    const { name } = modal.fields
+    if (!name.trim()) return
 
-  function saveSale(id) {
-    if (!esName.trim()) return
-    update('itemsForSale', id, { name: esName.trim(), price: esPrice, marketplace: esMkt })
-    setEditSaleId(null)
-  }
-
-  function addShopItem(e) {
-    e.preventDefault()
-    if (!shopName.trim()) return
-    add('shoppingList', { name: shopName.trim(), budget: shopBudget, bought: false })
-    setShopName(''); setShopBudget('')
-  }
-
-  function startEditShop(item) {
-    setEditShopId(item.id)
-    setEshName(item.name || '')
-    setEshBudget(item.budget || '')
-  }
-
-  function saveShop(id) {
-    if (!eshName.trim()) return
-    update('shoppingList', id, { name: eshName.trim(), budget: eshBudget })
-    setEditShopId(null)
+    if (modal.type === 'sale') {
+      const obj = { name: name.trim(), price: modal.fields.price, marketplace: modal.fields.marketplace }
+      if (modal.mode === 'add') add('itemsForSale', { ...obj, sold: false })
+      else update('itemsForSale', modal.id, obj)
+    } else {
+      const obj = { name: name.trim(), budget: modal.fields.budget }
+      if (modal.mode === 'add') add('shoppingList', { ...obj, bought: false })
+      else update('shoppingList', modal.id, obj)
+    }
   }
 
   const saleItems = [...itemsForSale].sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
@@ -67,6 +44,10 @@ export default function Shopping({ data, add, update, remove }) {
 
   const shopTotal = shoppingList.reduce((sum, i) => sum + (Number(i.budget) || 0), 0)
   const shopBoughtTotal = shoppingList.filter(i => i.bought).reduce((sum, i) => sum + (Number(i.budget) || 0), 0)
+
+  const modalTitle = modal?.mode === 'edit'
+    ? (modal.type === 'sale' ? 'עריכת פריט למכירה' : 'עריכת פריט')
+    : (modal?.type === 'sale' ? 'הוסף פריט למכירה' : 'הוסף פריט לקנייה')
 
   return (
     <>
@@ -79,61 +60,23 @@ export default function Shopping({ data, add, update, remove }) {
         {saleItems.length === 0 ? (
           <p className="empty-state">אין פריטים למכירה עדיין</p>
         ) : (
-          saleItems.map(item => {
-            if (editSaleId === item.id) {
-              return (
-                <div key={item.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                  <div className="input-group" style={{ marginBottom: 8 }}>
-                    <input className="input" value={esName} onChange={e => setEsName(e.target.value)} />
-                  </div>
-                  <div className="input-row" style={{ marginBottom: 8 }}>
-                    <input className="input" placeholder="מחיר" value={esPrice} type="number" min="0"
-                      onChange={e => setEsPrice(e.target.value)} />
-                    <select className="input" value={esMkt} onChange={e => setEsMkt(e.target.value)}>
-                      {MARKETPLACES.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary" onClick={() => saveSale(item.id)} style={{ padding: '6px 16px', fontSize: 13 }}>שמור</button>
-                    <button className="btn btn-outline" onClick={() => setEditSaleId(null)} style={{ padding: '6px 16px', fontSize: 13 }}>ביטול</button>
-                  </div>
-                </div>
-              )
-            }
-            return (
-              <div key={item.id} className="shop-item" onClick={() => startEditSale(item)} style={{ cursor: 'pointer' }}>
-                <div
-                  className={`shop-check ${item.sold ? 'done' : ''}`}
-                  onClick={e => { e.stopPropagation(); update('itemsForSale', item.id, { sold: !item.sold }) }}
-                >
-                  {item.sold && '✓'}
-                </div>
-                <div className="shop-name" style={{ textDecoration: item.sold ? 'line-through' : 'none', color: item.sold ? 'var(--text-muted)' : 'var(--text)' }}>
-                  {item.name}
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.marketplace}</div>
-                </div>
-                {item.price && <div className="shop-price">₪{item.price}</div>}
-                <button className="task-delete" onClick={e => { e.stopPropagation(); remove('itemsForSale', item.id) }}>✕</button>
+          saleItems.map(item => (
+            <div key={item.id} className="shop-item" onClick={() => openEditSale(item)} style={{ cursor: 'pointer' }}>
+              <div
+                className={`shop-check ${item.sold ? 'done' : ''}`}
+                onClick={e => { e.stopPropagation(); update('itemsForSale', item.id, { sold: !item.sold }) }}
+              >
+                {item.sold && '✓'}
               </div>
-            )
-          })
+              <div className="shop-name" style={{ textDecoration: item.sold ? 'line-through' : 'none', color: item.sold ? 'var(--text-muted)' : 'var(--text)' }}>
+                {item.name}
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.marketplace}</div>
+              </div>
+              {item.price && <div className="shop-price">₪{item.price}</div>}
+              <button className="task-delete" onClick={e => { e.stopPropagation(); remove('itemsForSale', item.id) }}>✕</button>
+            </div>
+          ))
         )}
-
-        <div className="section-divider" style={{ marginTop: 12 }}>הוסף פריט</div>
-        <form onSubmit={addSaleItem}>
-          <div className="input-group">
-            <input className="input" placeholder="שם הפריט" value={saleName}
-              onChange={e => setSaleName(e.target.value)} />
-          </div>
-          <div className="input-row">
-            <input className="input" placeholder="מחיר" value={salePrice} type="number" min="0"
-              onChange={e => setSalePrice(e.target.value)} />
-            <select className="input" value={saleMkt} onChange={e => setSaleMkt(e.target.value)}>
-              {MARKETPLACES.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <button type="submit" className="btn btn-secondary">הוסף</button>
-        </form>
       </div>
 
       <div className="card">
@@ -149,51 +92,62 @@ export default function Shopping({ data, add, update, remove }) {
         {shopItems.length === 0 ? (
           <p className="empty-state">רשימת הקניות ריקה</p>
         ) : (
-          shopItems.map(item => {
-            if (editShopId === item.id) {
-              return (
-                <div key={item.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                  <div className="input-row" style={{ marginBottom: 8 }}>
-                    <input className="input" value={eshName} onChange={e => setEshName(e.target.value)} />
-                    <input className="input" placeholder="תקציב ₪" value={eshBudget} type="number" min="0"
-                      onChange={e => setEshBudget(e.target.value)} style={{ maxWidth: 120 }} />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary" onClick={() => saveShop(item.id)} style={{ padding: '6px 16px', fontSize: 13 }}>שמור</button>
-                    <button className="btn btn-outline" onClick={() => setEditShopId(null)} style={{ padding: '6px 16px', fontSize: 13 }}>ביטול</button>
-                  </div>
-                </div>
-              )
-            }
-            return (
-              <div key={item.id} className="shop-item" onClick={() => startEditShop(item)} style={{ cursor: 'pointer' }}>
-                <div
-                  className={`shop-check ${item.bought ? 'done' : ''}`}
-                  onClick={e => { e.stopPropagation(); update('shoppingList', item.id, { bought: !item.bought }) }}
-                >
-                  {item.bought && '✓'}
-                </div>
-                <div className="shop-name" style={{ textDecoration: item.bought ? 'line-through' : 'none', color: item.bought ? 'var(--text-muted)' : 'var(--text)' }}>
-                  {item.name}
-                </div>
-                {item.budget && <div className="shop-price">₪{item.budget}</div>}
-                <button className="task-delete" onClick={e => { e.stopPropagation(); remove('shoppingList', item.id) }}>✕</button>
+          shopItems.map(item => (
+            <div key={item.id} className="shop-item" onClick={() => openEditShop(item)} style={{ cursor: 'pointer' }}>
+              <div
+                className={`shop-check ${item.bought ? 'done' : ''}`}
+                onClick={e => { e.stopPropagation(); update('shoppingList', item.id, { bought: !item.bought }) }}
+              >
+                {item.bought && '✓'}
               </div>
-            )
-          })
+              <div className="shop-name" style={{ textDecoration: item.bought ? 'line-through' : 'none', color: item.bought ? 'var(--text-muted)' : 'var(--text)' }}>
+                {item.name}
+              </div>
+              {item.budget && <div className="shop-price">₪{item.budget}</div>}
+              <button className="task-delete" onClick={e => { e.stopPropagation(); remove('shoppingList', item.id) }}>✕</button>
+            </div>
+          ))
         )}
-
-        <div className="section-divider" style={{ marginTop: 12 }}>הוסף פריט</div>
-        <form onSubmit={addShopItem}>
-          <div className="input-row">
-            <input className="input" placeholder="שם הפריט" value={shopName}
-              onChange={e => setShopName(e.target.value)} />
-            <input className="input" placeholder="תקציב ₪" value={shopBudget} type="number" min="0"
-              onChange={e => setShopBudget(e.target.value)} style={{ maxWidth: 120 }} />
-          </div>
-          <button type="submit" className="btn btn-primary">הוסף</button>
-        </form>
       </div>
+
+      <Fab actions={[
+        { icon: '💰', label: 'פריט למכירה', onClick: openAddSale },
+        { icon: '🛍️', label: 'פריט לקנייה', onClick: openAddShop },
+      ]} />
+
+      <FormModal
+        isOpen={!!modal}
+        onClose={() => setModal(null)}
+        onSave={handleSave}
+        title={modalTitle}
+        saveLabel={modal?.mode === 'edit' ? 'שמור' : 'הוסף'}
+      >
+        {modal?.type === 'sale' && (
+          <>
+            <div className="input-group">
+              <input className="input" placeholder="שם הפריט" value={modal.fields.name}
+                onChange={e => setField('name', e.target.value)} />
+            </div>
+            <div className="input-row">
+              <input className="input" placeholder="מחיר" value={modal.fields.price} type="number" min="0"
+                onChange={e => setField('price', e.target.value)} />
+              <select className="input" value={modal.fields.marketplace} onChange={e => setField('marketplace', e.target.value)}>
+                {MARKETPLACES.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </>
+        )}
+        {modal?.type === 'shop' && (
+          <>
+            <div className="input-row">
+              <input className="input" placeholder="שם הפריט" value={modal.fields.name}
+                onChange={e => setField('name', e.target.value)} />
+              <input className="input" placeholder="תקציב ₪" value={modal.fields.budget} type="number" min="0"
+                onChange={e => setField('budget', e.target.value)} style={{ maxWidth: 120 }} />
+            </div>
+          </>
+        )}
+      </FormModal>
     </>
   )
 }

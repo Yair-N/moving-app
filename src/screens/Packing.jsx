@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import FormModal from '../components/FormModal'
+import Fab from '../components/Fab'
 
 const DEFAULT_ROOMS = ['מטבח', 'סלון', 'חדר שינה', 'חדר אמבטיה', 'מחסן', 'משרד']
 
@@ -8,22 +10,13 @@ function firstName(fullName) {
 
 export default function Packing({ data, add, update, remove, saveMeta, members }) {
   const { boxes } = data
-  const [boxNum, setBoxNum] = useState('')
-  const [boxRoom, setBoxRoom] = useState('')
-  const [boxDesc, setBoxDesc] = useState('')
-  const [boxFragile, setBoxFragile] = useState(false)
-  const [boxOwner, setBoxOwner] = useState('all')
   const [filterRoom, setFilterRoom] = useState('all')
   const [filterOwner, setFilterOwner] = useState('all')
-  const [editingId, setEditingId] = useState(null)
-  const [editNum, setEditNum] = useState('')
-  const [editRoom, setEditRoom] = useState('')
-  const [editDesc, setEditDesc] = useState('')
-  const [editFragile, setEditFragile] = useState(false)
-  const [editOwner, setEditOwner] = useState('all')
   const [customRooms, setCustomRooms] = useState([])
+  const [modal, setModal] = useState(null)
 
   const memberEntries = Object.entries(members)
+  const setField = (key, val) => setModal(prev => prev ? { ...prev, fields: { ...prev.fields, [key]: val } } : prev)
 
   useEffect(() => {
     if (data.settings?.customRooms) setCustomRooms(data.settings.customRooms)
@@ -44,42 +37,24 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
     }
   }
 
-  function addBox(e) {
-    e.preventDefault()
-    if (!boxRoom.trim()) return
-    saveRoom(boxRoom.trim())
-    add('boxes', {
-      number: boxNum.trim() || String(nextNumber),
-      room: boxRoom.trim(),
-      description: boxDesc.trim(),
-      fragile: boxFragile,
-      owner: boxOwner,
-    })
-    setBoxNum('')
-    setBoxDesc('')
-    setBoxFragile(false)
+  function openAdd() {
+    setModal({ mode: 'add', fields: { number: '', room: '', description: '', fragile: false, owner: 'all' } })
   }
 
-  function startEdit(b) {
-    setEditingId(b.id)
-    setEditNum(b.number || '')
-    setEditRoom(b.room || '')
-    setEditDesc(b.description || '')
-    setEditFragile(b.fragile || false)
-    setEditOwner(b.owner || 'all')
+  function openEdit(b) {
+    setModal({ mode: 'edit', id: b.id, fields: { number: b.number || '', room: b.room || '', description: b.description || '', fragile: b.fragile || false, owner: b.owner || 'all' } })
   }
 
-  function saveEdit(id) {
-    if (!editRoom.trim()) return
-    saveRoom(editRoom.trim())
-    update('boxes', id, {
-      number: editNum.trim() || '0',
-      room: editRoom.trim(),
-      description: editDesc.trim(),
-      fragile: editFragile,
-      owner: editOwner,
-    })
-    setEditingId(null)
+  function handleSave() {
+    if (!modal) return
+    const { number, room, description, fragile, owner } = modal.fields
+    if (!room.trim()) return
+    saveRoom(room.trim())
+    if (modal.mode === 'add') {
+      add('boxes', { number: number.trim() || String(nextNumber), room: room.trim(), description: description.trim(), fragile, owner })
+    } else {
+      update('boxes', modal.id, { number: number.trim() || '0', room: room.trim(), description: description.trim(), fragile, owner })
+    }
   }
 
   let filtered = [...boxes]
@@ -95,42 +70,6 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
         <h1>📦 אריזה</h1>
       </div>
 
-      {/* Add box */}
-      <div className="card">
-        <div className="card-title">הוסף ארגז #{nextNumber} ➕</div>
-        <form onSubmit={addBox}>
-          <div className="input-row">
-            <input className="input" placeholder={`מס׳ (${nextNumber})`} value={boxNum}
-              onChange={e => setBoxNum(e.target.value)} inputMode="numeric"
-              style={{ flex: '0 0 80px' }} />
-            <input className="input" list="room-list" placeholder="חדר" value={boxRoom}
-              onChange={e => setBoxRoom(e.target.value)} />
-            <datalist id="room-list">
-              {allRooms.map(r => <option key={r} value={r} />)}
-            </datalist>
-            {memberEntries.length > 1 && (
-              <select className="input" value={boxOwner} onChange={e => setBoxOwner(e.target.value)}>
-                <option value="all">כולם</option>
-                {memberEntries.map(([uid, name]) => (
-                  <option key={uid} value={uid}>{firstName(name)}</option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="input-group">
-            <input className="input" placeholder="תיאור תוכן" value={boxDesc}
-              onChange={e => setBoxDesc(e.target.value)} />
-          </div>
-          <div className="checkbox-row" style={{ marginBottom: 10 }}>
-            <input type="checkbox" id="fragile" checked={boxFragile}
-              onChange={e => setBoxFragile(e.target.checked)} />
-            <label htmlFor="fragile">⚠️ שביר</label>
-          </div>
-          <button type="submit" className="btn btn-primary">הוסף ארגז</button>
-        </form>
-      </div>
-
-      {/* Filters */}
       {boxes.length > 0 && (
         <div className="filter-row" style={{ flexWrap: 'wrap' }}>
           <button className={`filter-pill ${filterRoom === 'all' ? 'active' : ''}`}
@@ -157,55 +96,13 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
         </div>
       )}
 
-      {/* Box list */}
       {sorted.length > 0 && (
         <div className="card">
           <div className="card-title">ארגזים ({sorted.length})</div>
           {sorted.map(b => {
             const ownerName = b.owner === 'all' ? '' : members[b.owner] ? firstName(members[b.owner]) : ''
-
-            if (editingId === b.id) {
-              return (
-                <div key={b.id} className="box-item" style={{ flexWrap: 'wrap', gap: 8, padding: '12px 0' }}>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div className="input-row" style={{ margin: 0 }}>
-                      <input className="input" value={editNum} placeholder="מס׳"
-                        onChange={e => setEditNum(e.target.value)} inputMode="numeric"
-                        style={{ flex: '0 0 60px' }} />
-                      <input className="input" list="room-list-edit" value={editRoom}
-                        placeholder="חדר" onChange={e => setEditRoom(e.target.value)} />
-                      <datalist id="room-list-edit">
-                        {allRooms.map(r => <option key={r} value={r} />)}
-                      </datalist>
-                      {memberEntries.length > 1 && (
-                        <select className="input" value={editOwner} onChange={e => setEditOwner(e.target.value)}>
-                          <option value="all">כולם</option>
-                          {memberEntries.map(([uid, name]) => (
-                            <option key={uid} value={uid}>{firstName(name)}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                    <input className="input" placeholder="תיאור תוכן" value={editDesc}
-                      onChange={e => setEditDesc(e.target.value)} style={{ margin: 0 }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div className="checkbox-row" style={{ margin: 0, flex: 1 }}>
-                        <input type="checkbox" id={`edit-fragile-${b.id}`} checked={editFragile}
-                          onChange={e => setEditFragile(e.target.checked)} />
-                        <label htmlFor={`edit-fragile-${b.id}`}>⚠️ שביר</label>
-                      </div>
-                      <button className="btn btn-primary" onClick={() => saveEdit(b.id)}
-                        style={{ padding: '6px 16px', fontSize: 13 }}>שמור</button>
-                      <button className="btn btn-outline" onClick={() => setEditingId(null)}
-                        style={{ padding: '6px 16px', fontSize: 13 }}>ביטול</button>
-                    </div>
-                  </div>
-                </div>
-              )
-            }
-
             return (
-              <div key={b.id} className="box-item" onClick={() => startEdit(b)} style={{ cursor: 'pointer' }}>
+              <div key={b.id} className="box-item" onClick={() => openEdit(b)} style={{ cursor: 'pointer' }}>
                 <div className="box-num">#{b.number}</div>
                 <div className="box-info">
                   <div className="box-desc">
@@ -222,7 +119,6 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
         </div>
       )}
 
-      {/* Stats */}
       {boxes.length > 0 && (
         <div className="card">
           <div className="card-title">סיכום</div>
@@ -246,6 +142,50 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
           </div>
         </div>
       )}
+
+      <Fab onClick={openAdd} />
+
+      <FormModal
+        isOpen={!!modal}
+        onClose={() => setModal(null)}
+        onSave={handleSave}
+        title={modal?.mode === 'edit' ? 'עריכת ארגז' : `הוסף ארגז #${nextNumber}`}
+        saveLabel={modal?.mode === 'edit' ? 'שמור' : 'הוסף'}
+      >
+        {modal && (
+          <>
+            <div className="input-row">
+              <input className="input" placeholder={`מס׳ (${nextNumber})`} value={modal.fields.number}
+                onChange={e => setField('number', e.target.value)} inputMode="numeric"
+                style={{ flex: '0 0 80px' }} />
+              <input className="input" list="room-list-modal" placeholder="חדר" value={modal.fields.room}
+                onChange={e => setField('room', e.target.value)} />
+              <datalist id="room-list-modal">
+                {allRooms.map(r => <option key={r} value={r} />)}
+              </datalist>
+            </div>
+            {memberEntries.length > 1 && (
+              <div className="input-group">
+                <select className="input" value={modal.fields.owner} onChange={e => setField('owner', e.target.value)}>
+                  <option value="all">כולם</option>
+                  {memberEntries.map(([uid, name]) => (
+                    <option key={uid} value={uid}>{firstName(name)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="input-group">
+              <input className="input" placeholder="תיאור תוכן" value={modal.fields.description}
+                onChange={e => setField('description', e.target.value)} />
+            </div>
+            <div className="checkbox-row" style={{ marginBottom: 10 }}>
+              <input type="checkbox" id="modal-fragile" checked={modal.fields.fragile}
+                onChange={e => setField('fragile', e.target.checked)} />
+              <label htmlFor="modal-fragile">⚠️ שביר</label>
+            </div>
+          </>
+        )}
+      </FormModal>
     </>
   )
 }

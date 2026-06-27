@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import DateInput from '../components/DateInput'
+import FormModal from '../components/FormModal'
+import Fab from '../components/Fab'
 
 function firstName(fullName) {
   return (fullName || '').split(' ')[0] || '?'
@@ -15,88 +17,44 @@ export default function Apartments({ data, add, update, remove, user, members })
   const { tasks, contacts } = data
   const [apt, setApt] = useState('leaving')
   const [filter, setFilter] = useState('all')
-  const [taskName, setTaskName] = useState('')
-  const [taskDate, setTaskDate] = useState('')
-  const [taskAssignee, setTaskAssignee] = useState('all')
-  const [contactName, setContactName] = useState('')
-  const [contactProf, setContactProf] = useState('')
-  const [contactPhone, setContactPhone] = useState('')
-  const [contactMeeting, setContactMeeting] = useState('')
-  const [contactTime, setContactTime] = useState('')
-
-  // Edit states
-  const [editingTask, setEditingTask] = useState(null)
-  const [etName, setEtName] = useState('')
-  const [etDate, setEtDate] = useState('')
-  const [etAssignee, setEtAssignee] = useState('all')
-
-  const [editingContact, setEditingContact] = useState(null)
-  const [ecName, setEcName] = useState('')
-  const [ecProf, setEcProf] = useState('')
-  const [ecPhone, setEcPhone] = useState('')
-  const [ecMeeting, setEcMeeting] = useState('')
-  const [ecTime, setEcTime] = useState('')
+  const [modal, setModal] = useState(null)
 
   const memberEntries = Object.entries(members)
+  const setField = (key, val) => setModal(prev => prev ? { ...prev, fields: { ...prev.fields, [key]: val } } : prev)
 
-  const aptTasks = tasks.filter(t => t.apt === apt)
-  const filtered = filter === 'all' ? aptTasks : aptTasks.filter(t => t.assignee === filter)
-  const sorted = [...filtered].sort((a, b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1
-    const dateA = a.dueDate || '9999'
-    const dateB = b.dueDate || '9999'
-    return dateA.localeCompare(dateB)
-  })
+  function openAddTask() {
+    setModal({ mode: 'add', type: 'task', fields: { name: '', dueDate: '', assignee: 'all' } })
+  }
+  function openAddContact() {
+    setModal({ mode: 'add', type: 'contact', fields: { name: '', profession: '', phone: '', meeting: '', time: '' } })
+  }
+  function openEditTask(t) {
+    setModal({ mode: 'edit', type: 'task', id: t.id, fields: { name: t.name, dueDate: t.dueDate || '', assignee: t.assignee || 'all' } })
+  }
+  function openEditContact(c) {
+    const parts = (c.meeting || '').split(' ')
+    setModal({ mode: 'edit', type: 'contact', id: c.id, fields: { name: c.name, profession: c.profession || '', phone: c.phone || '', meeting: parts[0] || '', time: parts[1] || '' } })
+  }
 
-  function addTask(e) {
-    e.preventDefault()
-    if (!taskName.trim()) return
-    add('tasks', { name: taskName.trim(), apt, assignee: taskAssignee, dueDate: taskDate, done: false })
-    setTaskName('')
-    setTaskDate('')
-    setTaskAssignee('all')
+  function handleSave() {
+    if (!modal) return
+    const { name } = modal.fields
+    if (!name.trim()) return
+
+    if (modal.type === 'task') {
+      const obj = { name: name.trim(), dueDate: modal.fields.dueDate, assignee: modal.fields.assignee }
+      if (modal.mode === 'add') add('tasks', { ...obj, apt, done: false })
+      else update('tasks', modal.id, obj)
+    } else {
+      const meeting = modal.fields.meeting && modal.fields.time ? `${modal.fields.meeting} ${modal.fields.time}` : modal.fields.meeting
+      const obj = { name: name.trim(), profession: modal.fields.profession.trim(), phone: modal.fields.phone.trim(), meeting }
+      if (modal.mode === 'add') add('contacts', obj)
+      else update('contacts', modal.id, obj)
+    }
   }
 
   function toggleTask(t) {
     update('tasks', t.id, { done: !t.done })
-  }
-
-  function startEditTask(t) {
-    setEditingTask(t.id)
-    setEtName(t.name || '')
-    setEtDate(t.dueDate || '')
-    setEtAssignee(t.assignee || 'all')
-  }
-
-  function saveTask(id) {
-    if (!etName.trim()) return
-    update('tasks', id, { name: etName.trim(), dueDate: etDate, assignee: etAssignee })
-    setEditingTask(null)
-  }
-
-  function addContact(e) {
-    e.preventDefault()
-    if (!contactName.trim()) return
-    const meeting = contactMeeting && contactTime ? `${contactMeeting} ${contactTime}` : contactMeeting
-    add('contacts', { name: contactName.trim(), profession: contactProf.trim(), phone: contactPhone.trim(), meeting })
-    setContactName(''); setContactProf(''); setContactPhone(''); setContactMeeting(''); setContactTime('')
-  }
-
-  function startEditContact(c) {
-    setEditingContact(c.id)
-    setEcName(c.name || '')
-    setEcProf(c.profession || '')
-    setEcPhone(c.phone || '')
-    const parts = (c.meeting || '').split(' ')
-    setEcMeeting(parts[0] || '')
-    setEcTime(parts[1] || '')
-  }
-
-  function saveContact(id) {
-    if (!ecName.trim()) return
-    const meeting = ecMeeting && ecTime ? `${ecMeeting} ${ecTime}` : ecMeeting
-    update('contacts', id, { name: ecName.trim(), profession: ecProf.trim(), phone: ecPhone.trim(), meeting })
-    setEditingContact(null)
   }
 
   function assigneeLabel(assignee) {
@@ -110,6 +68,19 @@ export default function Apartments({ data, add, update, remove, user, members })
     if (assignee === user.uid) return 'badge-self'
     return 'badge-other'
   }
+
+  const aptTasks = tasks.filter(t => t.apt === apt)
+  const filtered = filter === 'all' ? aptTasks : aptTasks.filter(t => t.assignee === filter)
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1
+    const dateA = a.dueDate || '9999'
+    const dateB = b.dueDate || '9999'
+    return dateA.localeCompare(dateB)
+  })
+
+  const modalTitle = modal?.mode === 'edit'
+    ? (modal.type === 'task' ? 'עריכת משימה' : 'עריכת איש קשר')
+    : (modal?.type === 'task' ? 'הוסף משימה' : 'הוסף איש קשר')
 
   return (
     <>
@@ -142,63 +113,20 @@ export default function Apartments({ data, add, update, remove, user, members })
         {sorted.length === 0 ? (
           <p className="empty-state">אין משימות עדיין</p>
         ) : (
-          sorted.map(t => {
-            if (editingTask === t.id) {
-              return (
-                <div key={t.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                  <div className="input-group" style={{ marginBottom: 8 }}>
-                    <input className="input" value={etName} onChange={e => setEtName(e.target.value)} />
-                  </div>
-                  <div className="input-row" style={{ marginBottom: 8 }}>
-                    <DateInput className="input" value={etDate} onChange={setEtDate} />
-                    <select className="input" value={etAssignee} onChange={e => setEtAssignee(e.target.value)}>
-                      <option value="all">כולם</option>
-                      {memberEntries.map(([uid, name]) => (
-                        <option key={uid} value={uid}>{firstName(name)}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary" onClick={() => saveTask(t.id)} style={{ padding: '6px 16px', fontSize: 13 }}>שמור</button>
-                    <button className="btn btn-outline" onClick={() => setEditingTask(null)} style={{ padding: '6px 16px', fontSize: 13 }}>ביטול</button>
-                  </div>
-                </div>
-              )
-            }
-            return (
-              <div key={t.id} className="task-item" onClick={() => startEditTask(t)} style={{ cursor: 'pointer' }}>
-                <div className={`task-check ${t.done ? 'done' : ''}`} onClick={e => { e.stopPropagation(); toggleTask(t) }}>
-                  {t.done && '✓'}
-                </div>
-                <div className="task-body">
-                  <div className={`task-name ${t.done ? 'done' : ''}`}>{t.name}</div>
-                  {t.dueDate && <div className="task-meta">📅 {formatDate(t.dueDate)}</div>}
-                </div>
-                <span className={`task-badge ${badgeClass(t.assignee)}`}>{assigneeLabel(t.assignee)}</span>
-                <button className="task-delete" onClick={e => { e.stopPropagation(); remove('tasks', t.id) }}>✕</button>
+          sorted.map(t => (
+            <div key={t.id} className="task-item" onClick={() => openEditTask(t)} style={{ cursor: 'pointer' }}>
+              <div className={`task-check ${t.done ? 'done' : ''}`} onClick={e => { e.stopPropagation(); toggleTask(t) }}>
+                {t.done && '✓'}
               </div>
-            )
-          })
+              <div className="task-body">
+                <div className={`task-name ${t.done ? 'done' : ''}`}>{t.name}</div>
+                {t.dueDate && <div className="task-meta">📅 {formatDate(t.dueDate)}</div>}
+              </div>
+              <span className={`task-badge ${badgeClass(t.assignee)}`}>{assigneeLabel(t.assignee)}</span>
+              <button className="task-delete" onClick={e => { e.stopPropagation(); remove('tasks', t.id) }}>✕</button>
+            </div>
+          ))
         )}
-      </div>
-
-      <div className="card">
-        <div className="card-title">הוסף משימה ➕</div>
-        <form onSubmit={addTask}>
-          <div className="input-group">
-            <input className="input" placeholder="שם המשימה" value={taskName} onChange={e => setTaskName(e.target.value)} />
-          </div>
-          <div className="input-row">
-            <DateInput className="input" value={taskDate} onChange={setTaskDate} />
-            <select className="input" value={taskAssignee} onChange={e => setTaskAssignee(e.target.value)}>
-              <option value="all">כולם</option>
-              {memberEntries.map(([uid, name]) => (
-                <option key={uid} value={uid}>{firstName(name)}</option>
-              ))}
-            </select>
-          </div>
-          <button type="submit" className="btn btn-primary">הוסף</button>
-        </form>
       </div>
 
       <div className="card">
@@ -206,68 +134,72 @@ export default function Apartments({ data, add, update, remove, user, members })
         {contacts.length === 0 ? (
           <p className="empty-state">אין אנשי קשר עדיין</p>
         ) : (
-          contacts.map(c => {
-            if (editingContact === c.id) {
-              return (
-                <div key={c.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                  <div className="input-group" style={{ marginBottom: 8 }}>
-                    <input className="input" placeholder="שם" value={ecName} onChange={e => setEcName(e.target.value)} />
-                  </div>
-                  <div className="input-row" style={{ marginBottom: 8 }}>
-                    <input className="input" placeholder="מקצוע" value={ecProf} onChange={e => setEcProf(e.target.value)} />
-                    <input className="input" placeholder="טלפון" value={ecPhone} onChange={e => setEcPhone(e.target.value)} />
-                  </div>
-                  <div className="input-row" style={{ marginBottom: 8 }}>
-                    <DateInput className="input" value={ecMeeting} onChange={setEcMeeting} />
-                    <div style={{ flex: 1 }}>
-                      <input className="input" placeholder="שעה (14:00)" value={ecTime} onChange={e => {
-                        const v = e.target.value.replace(/[^0-9:]/g, '')
-                        if (v.length === 2 && !v.includes(':') && ecTime.length < 2) setEcTime(v + ':')
-                        else setEcTime(v.slice(0, 5))
-                      }} inputMode="numeric" maxLength={5} style={{ width: '100%' }} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary" onClick={() => saveContact(c.id)} style={{ padding: '6px 16px', fontSize: 13 }}>שמור</button>
-                    <button className="btn btn-outline" onClick={() => setEditingContact(null)} style={{ padding: '6px 16px', fontSize: 13 }}>ביטול</button>
-                  </div>
-                </div>
-              )
-            }
-            return (
-              <div key={c.id} className="contact-item" onClick={() => startEditContact(c)} style={{ cursor: 'pointer' }}>
-                <div className="contact-name">{c.name}</div>
-                {c.profession && <div className="contact-meta">{c.profession}</div>}
-                {c.phone && <div className="contact-phone">📱 {c.phone}</div>}
-                {c.meeting && <div className="contact-meeting">🗓️ {c.meeting}</div>}
-                <button className="task-delete" onClick={e => { e.stopPropagation(); remove('contacts', c.id) }} style={{ float: 'left' }}>✕</button>
-              </div>
-            )
-          })
-        )}
-
-        <div className="section-divider" style={{ marginTop: 12 }}>הוסף איש קשר</div>
-        <form onSubmit={addContact}>
-          <div className="input-group">
-            <input className="input" placeholder="שם" value={contactName} onChange={e => setContactName(e.target.value)} />
-          </div>
-          <div className="input-row">
-            <input className="input" placeholder="מקצוע (אינטרנט, גז...)" value={contactProf} onChange={e => setContactProf(e.target.value)} />
-            <input className="input" placeholder="טלפון" value={contactPhone} onChange={e => setContactPhone(e.target.value)} />
-          </div>
-          <div className="input-row">
-            <DateInput className="input" value={contactMeeting} onChange={setContactMeeting} />
-            <div style={{ flex: 1 }}>
-              <input className="input" placeholder="שעה (14:00)" value={contactTime || ''} onChange={e => {
-                const v = e.target.value.replace(/[^0-9:]/g, '')
-                if (v.length === 2 && !v.includes(':') && (contactTime || '').length < 2) setContactTime(v + ':')
-                else setContactTime(v.slice(0, 5))
-              }} inputMode="numeric" maxLength={5} style={{ width: '100%' }} />
+          contacts.map(c => (
+            <div key={c.id} className="contact-item" onClick={() => openEditContact(c)} style={{ cursor: 'pointer' }}>
+              <div className="contact-name">{c.name}</div>
+              {c.profession && <div className="contact-meta">{c.profession}</div>}
+              {c.phone && <div className="contact-phone">📱 {c.phone}</div>}
+              {c.meeting && <div className="contact-meeting">🗓️ {c.meeting}</div>}
+              <button className="task-delete" onClick={e => { e.stopPropagation(); remove('contacts', c.id) }} style={{ float: 'left' }}>✕</button>
             </div>
-          </div>
-          <button type="submit" className="btn btn-secondary">הוסף איש קשר</button>
-        </form>
+          ))
+        )}
       </div>
+
+      <Fab actions={[
+        { icon: '📋', label: 'משימה', onClick: openAddTask },
+        { icon: '📞', label: 'איש קשר', onClick: openAddContact },
+      ]} />
+
+      <FormModal
+        isOpen={!!modal}
+        onClose={() => setModal(null)}
+        onSave={handleSave}
+        title={modalTitle}
+        saveLabel={modal?.mode === 'edit' ? 'שמור' : 'הוסף'}
+      >
+        {modal?.type === 'task' && (
+          <>
+            <div className="input-group">
+              <input className="input" placeholder="שם המשימה" value={modal.fields.name}
+                onChange={e => setField('name', e.target.value)} />
+            </div>
+            <div className="input-row">
+              <DateInput className="input" value={modal.fields.dueDate} onChange={v => setField('dueDate', v)} />
+              <select className="input" value={modal.fields.assignee} onChange={e => setField('assignee', e.target.value)}>
+                <option value="all">כולם</option>
+                {memberEntries.map(([uid, name]) => (
+                  <option key={uid} value={uid}>{firstName(name)}</option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
+        {modal?.type === 'contact' && (
+          <>
+            <div className="input-group">
+              <input className="input" placeholder="שם" value={modal.fields.name}
+                onChange={e => setField('name', e.target.value)} />
+            </div>
+            <div className="input-row">
+              <input className="input" placeholder="מקצוע (אינטרנט, גז...)" value={modal.fields.profession}
+                onChange={e => setField('profession', e.target.value)} />
+              <input className="input" placeholder="טלפון" value={modal.fields.phone}
+                onChange={e => setField('phone', e.target.value)} />
+            </div>
+            <div className="input-row">
+              <DateInput className="input" value={modal.fields.meeting} onChange={v => setField('meeting', v)} />
+              <div style={{ flex: 1 }}>
+                <input className="input" placeholder="שעה (14:00)" value={modal.fields.time} onChange={e => {
+                  const v = e.target.value.replace(/[^0-9:]/g, '')
+                  if (v.length === 2 && !v.includes(':') && (modal.fields.time || '').length < 2) setField('time', v + ':')
+                  else setField('time', v.slice(0, 5))
+                }} inputMode="numeric" maxLength={5} style={{ width: '100%' }} />
+              </div>
+            </div>
+          </>
+        )}
+      </FormModal>
     </>
   )
 }
