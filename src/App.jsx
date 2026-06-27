@@ -164,7 +164,9 @@ export default function App() {
 
   const add = (col, obj) => addDoc(collection(db, 'households', householdId, col), { ...obj, createdAt: serverTimestamp() })
   const update = (col, id, obj) => updateDoc(doc(db, 'households', householdId, col, id), obj)
-  const remove = (col, id) => deleteDoc(doc(db, 'households', householdId, col, id))
+  const remove = (col, id) => {
+    if (window.confirm('בטוח?')) deleteDoc(doc(db, 'households', householdId, col, id))
+  }
   const saveMeta = (docName, obj) => setDoc(doc(db, 'households', householdId, 'meta', docName), obj, { merge: true })
 
   if (authLoading) return <div className="auth-screen"><div className="auth-emoji">🏠</div></div>
