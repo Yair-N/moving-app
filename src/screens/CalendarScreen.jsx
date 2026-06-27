@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { getCalendarToken, pushEventsToGoogleCalendar } from '../firebase'
 import DateInput from '../components/DateInput'
 
 const HEBREW_DAYS = ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת']
@@ -26,35 +25,6 @@ export default function CalendarScreen({ data, add, remove }) {
   const [time, setTime] = useState('')
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
-  const [syncing, setSyncing] = useState(false)
-  const [syncMsg, setSyncMsg] = useState(null)
-
-  async function syncToGoogle() {
-    if (events.length === 0) return
-    setSyncing(true)
-    setSyncMsg(null)
-    try {
-      const token = await getCalendarToken()
-      if (!token) {
-        setSyncMsg({ ok: false, text: 'לא הצלחנו לקבל הרשאה ליומן Google' })
-        setSyncing(false)
-        return
-      }
-      const results = await pushEventsToGoogleCalendar(token, events)
-      const ok = results.filter(r => r.ok).length
-      const failed = results.filter(r => !r.ok).length
-      if (failed === 0) {
-        setSyncMsg({ ok: true, text: `${ok} אירועים סונכרנו ליומן Google` })
-      } else {
-        setSyncMsg({ ok: false, text: `${ok} הצליחו, ${failed} נכשלו` })
-      }
-    } catch (err) {
-      console.error('Calendar sync failed:', err)
-      setSyncMsg({ ok: false, text: 'שגיאה בסנכרון. ודא שהפעלת את Google Calendar API' })
-    }
-    setSyncing(false)
-  }
-
   function addEvent(e) {
     e.preventDefault()
     if (!title.trim() || !date) return
@@ -79,21 +49,6 @@ export default function CalendarScreen({ data, add, remove }) {
       <div className="page-header">
         <h1>📅 לוח זמנים</h1>
       </div>
-
-      {/* Google Calendar sync */}
-      {events.length > 0 && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={syncToGoogle} disabled={syncing}
-            style={{ flex: '0 0 auto' }}>
-            {syncing ? 'מסנכרן...' : '🔄 סנכרן ל-Google Calendar'}
-          </button>
-          {syncMsg && (
-            <span style={{ fontSize: 13, color: syncMsg.ok ? 'var(--success)' : 'var(--urgent)' }}>
-              {syncMsg.text}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Add event */}
       <div className="card">

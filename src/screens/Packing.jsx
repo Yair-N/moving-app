@@ -8,6 +8,7 @@ function firstName(fullName) {
 
 export default function Packing({ data, add, update, remove, saveMeta, members }) {
   const { boxes } = data
+  const [boxNum, setBoxNum] = useState('')
   const [boxRoom, setBoxRoom] = useState('')
   const [boxDesc, setBoxDesc] = useState('')
   const [boxFragile, setBoxFragile] = useState(false)
@@ -15,6 +16,7 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
   const [filterRoom, setFilterRoom] = useState('all')
   const [filterOwner, setFilterOwner] = useState('all')
   const [editingId, setEditingId] = useState(null)
+  const [editNum, setEditNum] = useState('')
   const [editRoom, setEditRoom] = useState('')
   const [editDesc, setEditDesc] = useState('')
   const [editFragile, setEditFragile] = useState(false)
@@ -47,18 +49,20 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
     if (!boxRoom.trim()) return
     saveRoom(boxRoom.trim())
     add('boxes', {
-      number: String(nextNumber),
+      number: boxNum.trim() || String(nextNumber),
       room: boxRoom.trim(),
       description: boxDesc.trim(),
       fragile: boxFragile,
       owner: boxOwner,
     })
+    setBoxNum('')
     setBoxDesc('')
     setBoxFragile(false)
   }
 
   function startEdit(b) {
     setEditingId(b.id)
+    setEditNum(b.number || '')
     setEditRoom(b.room || '')
     setEditDesc(b.description || '')
     setEditFragile(b.fragile || false)
@@ -69,6 +73,7 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
     if (!editRoom.trim()) return
     saveRoom(editRoom.trim())
     update('boxes', id, {
+      number: editNum.trim() || '0',
       room: editRoom.trim(),
       description: editDesc.trim(),
       fragile: editFragile,
@@ -95,6 +100,9 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
         <div className="card-title">הוסף ארגז #{nextNumber} ➕</div>
         <form onSubmit={addBox}>
           <div className="input-row">
+            <input className="input" placeholder={`מס׳ (${nextNumber})`} value={boxNum}
+              onChange={e => setBoxNum(e.target.value)} inputMode="numeric"
+              style={{ flex: '0 0 80px' }} />
             <input className="input" list="room-list" placeholder="חדר" value={boxRoom}
               onChange={e => setBoxRoom(e.target.value)} />
             <datalist id="room-list">
@@ -159,9 +167,11 @@ export default function Packing({ data, add, update, remove, saveMeta, members }
             if (editingId === b.id) {
               return (
                 <div key={b.id} className="box-item" style={{ flexWrap: 'wrap', gap: 8, padding: '12px 0' }}>
-                  <div className="box-num">#{b.number}</div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div className="input-row" style={{ margin: 0 }}>
+                      <input className="input" value={editNum} placeholder="מס׳"
+                        onChange={e => setEditNum(e.target.value)} inputMode="numeric"
+                        style={{ flex: '0 0 60px' }} />
                       <input className="input" list="room-list-edit" value={editRoom}
                         placeholder="חדר" onChange={e => setEditRoom(e.target.value)} />
                       <datalist id="room-list-edit">

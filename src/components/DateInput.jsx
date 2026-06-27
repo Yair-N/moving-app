@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function toDisplay(isoDate) {
   if (!isoDate) return ''
@@ -23,6 +23,7 @@ function autoFormat(raw) {
 
 export default function DateInput({ value, onChange, placeholder, className }) {
   const [display, setDisplay] = useState(toDisplay(value))
+  const nativeRef = useRef(null)
 
   useEffect(() => {
     setDisplay(toDisplay(value))
@@ -45,15 +46,46 @@ export default function DateInput({ value, onChange, placeholder, className }) {
     }
   }
 
+  function handleNativeChange(e) {
+    const val = e.target.value
+    if (val) {
+      onChange(val)
+      setDisplay(toDisplay(val))
+    }
+  }
+
+  function openPicker() {
+    if (nativeRef.current?.showPicker) {
+      nativeRef.current.showPicker()
+    }
+  }
+
   return (
-    <input
-      className={className || 'input'}
-      placeholder={placeholder || 'DD/MM/YYYY'}
-      value={display}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      inputMode="numeric"
-      maxLength={10}
-    />
+    <div style={{ position: 'relative', flex: 1 }}>
+      <input
+        className={className || 'input'}
+        placeholder={placeholder || 'DD/MM/YYYY'}
+        value={display}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        inputMode="numeric"
+        maxLength={10}
+      />
+      <input
+        ref={nativeRef}
+        type="date"
+        value={value || ''}
+        onChange={handleNativeChange}
+        style={{
+          position: 'absolute',
+          top: 0, right: 0, bottom: 0, left: 0,
+          opacity: 0,
+          width: '100%',
+          height: '100%',
+          cursor: 'pointer',
+        }}
+        tabIndex={-1}
+      />
+    </div>
   )
 }

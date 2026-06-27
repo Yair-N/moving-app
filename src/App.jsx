@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { auth, db, loginWithGoogle, logout } from './firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import {
@@ -129,6 +129,39 @@ export default function App() {
     return () => { unsubs.forEach(u => u()); infoUnsub(); settingsUnsub(); mcUnsub() }
   }, [user, householdId])
 
+  // Prevent back button from exiting the app
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href)
+    const onPopState = () => {
+      window.history.pushState(null, '', window.location.href)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  // Swipe gestures
+  const touchStart = useRef(null)
+  const tabIds = TABS.map(t => t.id)
+
+  const handleTouchStart = useCallback((e) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }, [])
+
+  const handleTouchEnd = useCallback((e) => {
+    if (!touchStart.current) return
+    const dx = e.changedTouches[0].clientX - touchStart.current.x
+    const dy = e.changedTouches[0].clientY - touchStart.current.y
+    touchStart.current = null
+    if (Math.abs(dx) < 80 || Math.abs(dy) > Math.abs(dx)) return
+    setTab(prev => {
+      const idx = tabIds.indexOf(prev)
+      // RTL: swipe right = previous tab (lower index), swipe left = next tab
+      if (dx > 0 && idx > 0) return tabIds[idx - 1]
+      if (dx < 0 && idx < tabIds.length - 1) return tabIds[idx + 1]
+      return prev
+    })
+  }, [tabIds])
+
   const add = (col, obj) => addDoc(collection(db, 'households', householdId, col), { ...obj, createdAt: serverTimestamp() })
   const update = (col, id, obj) => updateDoc(doc(db, 'households', householdId, col, id), obj)
   const remove = (col, id) => deleteDoc(doc(db, 'households', householdId, col, id))
@@ -153,7 +186,7 @@ export default function App() {
         </span>
       </div>
 
-      <div className="page-content">
+      <div className="page-content" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {tab === 'dashboard'  && <Dashboard  {...screenProps} />}
         {tab === 'apartments' && <Apartments {...screenProps} />}
         {tab === 'packing'    && <Packing    {...screenProps} />}
