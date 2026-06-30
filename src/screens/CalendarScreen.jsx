@@ -85,18 +85,25 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
                 const d = new Date(ev.date)
                 const dayName = HEBREW_DAYS[d.getDay()]
                 return (
-                  <div key={ev.id} className="event-item" onClick={() => openEdit(ev)} style={{ cursor: 'pointer' }}>
+                  <div key={ev.id} className="event-item" onClick={() => openEdit(ev)} style={{ cursor: 'pointer', opacity: ev.done ? 0.5 : 1 }}>
                     <div className="event-date-block">
                       <div className="event-day">{d.getDate()}</div>
                       <div className="event-month">{dayName}</div>
                     </div>
                     <div className="event-body">
-                      <div className="event-title">{ev.title}</div>
+                      <div className="event-title" style={{ textDecoration: ev.done ? 'line-through' : 'none' }}>{ev.title}</div>
                       <div className="event-time">
                         {ev.time && `${ev.time}`}{ev.location && ` • ${ev.location}`}
                         {' '}<span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatILDate(ev.date)}</span>
                       </div>
                       {ev.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{ev.notes}</div>}
+                    </div>
+                    <div
+                      className={`task-check ${ev.done ? 'done' : ''}`}
+                      onClick={e => { e.stopPropagation(); update('events', ev.id, { done: !ev.done }) }}
+                      style={{ flexShrink: 0 }}
+                    >
+                      {ev.done && '✓'}
                     </div>
                     <button className="event-delete" onClick={e => { e.stopPropagation(); remove('events', ev.id) }}>✕</button>
                   </div>
