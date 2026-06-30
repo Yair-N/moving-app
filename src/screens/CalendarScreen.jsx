@@ -55,7 +55,8 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
     }
   }
 
-  const sorted = [...events].sort((a, b) => new Date(a.date) - new Date(b.date))
+  const sorted = [...events].filter(e => !e.done).sort((a, b) => new Date(a.date) - new Date(b.date))
+  const doneSorted = [...events].filter(e => e.done).sort((a, b) => new Date(a.date) - new Date(b.date))
 
   const grouped = sorted.reduce((acc, ev) => {
     const d = new Date(ev.date)
@@ -72,11 +73,11 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
         <h1>📅 לוח זמנים</h1>
       </div>
 
-      {sorted.length === 0 ? (
+      {sorted.length === 0 && doneSorted.length === 0 ? (
         <div className="card">
           <p className="empty-state">אין אירועים מתוכננים</p>
         </div>
-      ) : (
+      ) : sorted.length === 0 ? null : (
         Object.values(grouped).map(group => (
           <div key={group.label}>
             <div className="section-divider">{group.label}</div>
@@ -112,6 +113,42 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
             </div>
           </div>
         ))
+      )}
+
+      {doneSorted.length > 0 && (
+        <>
+          <div className="section-divider" style={{ color: 'var(--text-muted)' }}>הושלמו ✓</div>
+          <div className="card" style={{ opacity: 0.65 }}>
+            {doneSorted.map(ev => {
+              const d = new Date(ev.date)
+              const dayName = HEBREW_DAYS[d.getDay()]
+              return (
+                <div key={ev.id} className="event-item" onClick={() => openEdit(ev)} style={{ cursor: 'pointer' }}>
+                  <div className="event-date-block">
+                    <div className="event-day">{d.getDate()}</div>
+                    <div className="event-month">{dayName}</div>
+                  </div>
+                  <div className="event-body">
+                    <div className="event-title" style={{ textDecoration: 'line-through' }}>{ev.title}</div>
+                    <div className="event-time">
+                      {ev.time && `${ev.time}`}{ev.location && ` • ${ev.location}`}
+                      {' '}<span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{formatILDate(ev.date)}</span>
+                    </div>
+                    {ev.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{ev.notes}</div>}
+                  </div>
+                  <div
+                    className="task-check done"
+                    onClick={e => { e.stopPropagation(); update('events', ev.id, { done: false }) }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    ✓
+                  </div>
+                  <button className="event-delete" onClick={e => { e.stopPropagation(); remove('events', ev.id) }}>✕</button>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
       <Fab onClick={openAdd} pulse={tab} />

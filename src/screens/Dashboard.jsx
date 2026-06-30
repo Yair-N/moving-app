@@ -28,9 +28,10 @@ export default function Dashboard({ data, saveMeta, members }) {
     .filter(t => !t.done && t.dueDate && daysUntil(t.dueDate) <= 7 && daysUntil(t.dueDate) >= 0)
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
 
-  // Upcoming events (next 7 days)
+  // Upcoming events (next 14 days, not done)
   const upcomingEvents = events
     .filter(e => {
+      if (e.done) return false
       const d = daysUntil(e.date?.split('T')[0])
       return d !== null && d >= 0 && d <= 14
     })
