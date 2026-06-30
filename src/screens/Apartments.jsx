@@ -137,13 +137,22 @@ export default function Apartments({ data, add, update, remove, user, members, t
         {contacts.length === 0 ? (
           <p className="empty-state">אין אנשי קשר עדיין</p>
         ) : (
-          contacts.map(c => (
-            <div key={c.id} className="contact-item" onClick={() => openEditContact(c)} style={{ cursor: 'pointer' }}>
-              <div className="contact-name">{c.name}</div>
-              {c.profession && <div className="contact-meta">{c.profession}</div>}
-              {c.phone && <div className="contact-phone">📱 {c.phone}</div>}
-              {c.meeting && <div className="contact-meeting">🗓️ {c.meeting}</div>}
-              <button className="task-delete" onClick={e => { e.stopPropagation(); remove('contacts', c.id) }} style={{ float: 'left' }}>✕</button>
+          [...contacts].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1)).map(c => (
+            <div key={c.id} className="contact-item" onClick={() => openEditContact(c)} style={{ cursor: 'pointer', opacity: c.done ? 0.55 : 1 }}>
+              <div
+                className={`task-check ${c.done ? 'done' : ''}`}
+                onClick={e => { e.stopPropagation(); update('contacts', c.id, { done: !c.done }) }}
+                style={{ flexShrink: 0 }}
+              >
+                {c.done && '✓'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="contact-name" style={{ textDecoration: c.done ? 'line-through' : 'none' }}>{c.name}</div>
+                {c.profession && <div className="contact-meta">{c.profession}</div>}
+                {c.phone && <div className="contact-phone">📱 {c.phone}</div>}
+                {c.meeting && <div className="contact-meeting">🗓️ {c.meeting}</div>}
+              </div>
+              <button className="task-delete" onClick={e => { e.stopPropagation(); remove('contacts', c.id) }}>✕</button>
             </div>
           ))
         )}
