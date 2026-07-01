@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DateInput from '../components/DateInput'
 import FormModal from '../components/FormModal'
 import Fab from '../components/Fab'
@@ -30,9 +30,10 @@ function TimeInput({ value, onChange }) {
 
 const EMPTY_EVENT = { title: '', date: '', time: '', location: '', notes: '' }
 
-export default function CalendarScreen({ data, add, update, remove, tab }) {
+export default function CalendarScreen({ data, add, update, remove, tab, focusTarget, clearFocusTarget }) {
   const { events } = data
   const [modal, setModal] = useState(null)
+  const [highlighted, setHighlighted] = useState(null)
 
   const setField = (key, val) => setModal(prev => prev ? { ...prev, fields: { ...prev.fields, [key]: val } } : prev)
 
@@ -54,6 +55,25 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
       update('events', modal.id, { title: title.trim(), date, time, location: location.trim(), notes: notes.trim() })
     }
   }
+
+  useEffect(() => {
+    if (focusTarget?.tab !== 'calendar' || focusTarget.type !== 'event') return
+
+    const focusKey = `event-${focusTarget.id}`
+    const scrollTimer = setTimeout(() => {
+      const el = document.getElementById(`focus-${focusKey}`)
+      if (!el) return
+      setHighlighted(focusKey)
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      clearFocusTarget?.()
+    }, 120)
+    const highlightTimer = setTimeout(() => setHighlighted(null), 2400)
+
+    return () => {
+      clearTimeout(scrollTimer)
+      clearTimeout(highlightTimer)
+    }
+  }, [focusTarget, clearFocusTarget])
 
   const sorted = [...events].filter(e => !e.done).sort((a, b) => new Date(a.date) - new Date(b.date))
   const doneSorted = [...events].filter(e => e.done).sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -91,7 +111,13 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
                 const d = new Date(ev.date)
                 const dayName = HEBREW_DAYS[d.getDay()]
                 return (
-                  <div key={ev.id} className="event-item" onClick={() => openEdit(ev)} style={{ cursor: 'pointer', opacity: ev.done ? 0.5 : 1 }}>
+                  <div
+                    key={ev.id}
+                    id={`focus-event-${ev.id}`}
+                    className={`event-item ${highlighted === `event-${ev.id}` ? 'focus-highlight' : ''}`}
+                    onClick={() => openEdit(ev)}
+                    style={{ cursor: 'pointer', opacity: ev.done ? 0.5 : 1 }}
+                  >
                     <div className="event-date-block">
                       <div className="event-day">{d.getDate()}</div>
                       <div className="event-month">{dayName}</div>
@@ -128,7 +154,13 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
               const d = new Date(ev.date)
               const dayName = HEBREW_DAYS[d.getDay()]
               return (
-                <div key={ev.id} className="event-item" onClick={() => openEdit(ev)} style={{ cursor: 'pointer' }}>
+                <div
+                  key={ev.id}
+                  id={`focus-event-${ev.id}`}
+                  className={`event-item ${highlighted === `event-${ev.id}` ? 'focus-highlight' : ''}`}
+                  onClick={() => openEdit(ev)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="event-date-block">
                     <div className="event-day">{d.getDate()}</div>
                     <div className="event-month">{dayName}</div>

@@ -73,6 +73,7 @@ export default function App() {
   const [slideDir, setSlideDir] = useState(null)
   const [members, setMembers] = useState({})
   const [codeCopied, setCodeCopied] = useState(false)
+  const [focusTarget, setFocusTarget] = useState(null)
   const [data, setData] = useState({
     tasks: [],
     contacts: [],
@@ -158,6 +159,11 @@ export default function App() {
     }, 10)
   }, [tab])
 
+  const focusEntry = useCallback((newTab, target) => {
+    setFocusTarget({ ...target, tab: newTab, nonce: Date.now() })
+    switchTab(newTab, tabIds.indexOf(newTab) > tabIds.indexOf(tab) ? 'slide-left' : 'slide-right')
+  }, [switchTab, tab, tabIds])
+
   const handleTouchEnd = useCallback((e) => {
     if (!touchStart.current) return
     const dx = e.changedTouches[0].clientX - touchStart.current.x
@@ -190,7 +196,20 @@ export default function App() {
   if (householdLoading) return <div className="auth-screen"><div className="auth-emoji">🏠</div></div>
   if (!householdId) return <HouseholdSetup user={user} onComplete={setHouseholdId} />
 
-  const screenProps = { data, add, update, remove, saveMeta, user, members, tab, switchTab }
+  const screenProps = {
+    data,
+    add,
+    update,
+    remove,
+    saveMeta,
+    user,
+    members,
+    tab,
+    switchTab,
+    focusEntry,
+    focusTarget,
+    clearFocusTarget: () => setFocusTarget(null)
+  }
 
   return (
     <div className="app">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DateInput from '../components/DateInput'
 import FormModal from '../components/FormModal'
 import Fab from '../components/Fab'
@@ -13,11 +13,12 @@ function formatDate(str) {
   return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: 'numeric' })
 }
 
-export default function Apartments({ data, add, update, remove, user, members, tab }) {
+export default function Apartments({ data, add, update, remove, user, members, tab, focusTarget, clearFocusTarget }) {
   const { tasks, contacts } = data
   const [apt, setApt] = useState('leaving')
   const [filter, setFilter] = useState('all')
   const [modal, setModal] = useState(null)
+  const [highlighted, setHighlighted] = useState(null)
 
   const memberEntries = Object.entries(members)
   const setField = (key, val) => setModal(prev => prev ? { ...prev, fields: { ...prev.fields, [key]: val } } : prev)
@@ -68,6 +69,32 @@ export default function Apartments({ data, add, update, remove, user, members, t
     if (assignee === user.uid) return 'badge-self'
     return 'badge-other'
   }
+
+  useEffect(() => {
+    if (focusTarget?.tab !== 'apartments') return
+    if (focusTarget.type === 'task') {
+      const task = tasks.find(t => t.id === focusTarget.id)
+      if (task) {
+        setApt(task.apt || 'leaving')
+        setFilter('all')
+      }
+    }
+
+    const focusKey = `${focusTarget.type}-${focusTarget.id}`
+    const scrollTimer = setTimeout(() => {
+      const el = document.getElementById(`focus-${focusKey}`)
+      if (!el) return
+      setHighlighted(focusKey)
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      clearFocusTarget?.()
+    }, 120)
+    const highlightTimer = setTimeout(() => setHighlighted(null), 2400)
+
+    return () => {
+      clearTimeout(scrollTimer)
+      clearTimeout(highlightTimer)
+    }
+  }, [focusTarget, tasks, clearFocusTarget])
 
   const aptTasks = tasks.filter(t => t.apt === apt)
   const filtered = filter === 'all' ? aptTasks : aptTasks.filter(t => t.assignee === filter)
@@ -120,7 +147,13 @@ export default function Apartments({ data, add, update, remove, user, members, t
           <p className="empty-state">אין משימות עדיין</p>
         ) : (
           sorted.map(t => (
-            <div key={t.id} className="task-item" onClick={() => openEditTask(t)} style={{ cursor: 'pointer' }}>
+            <div
+              key={t.id}
+              id={`focus-task-${t.id}`}
+              className={`task-item ${highlighted === `task-${t.id}` ? 'focus-highlight' : ''}`}
+              onClick={() => openEditTask(t)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className={`task-check ${t.done ? 'done' : ''}`} onClick={e => { e.stopPropagation(); toggleTask(t) }}>
                 {t.done && '✓'}
               </div>
@@ -144,7 +177,13 @@ export default function Apartments({ data, add, update, remove, user, members, t
           <p className="empty-state">אין אנשי קשר עדיין</p>
         ) : (
           [...contacts].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1)).map(c => (
-            <div key={c.id} className="contact-item" onClick={() => openEditContact(c)} style={{ cursor: 'pointer', opacity: c.done ? 0.55 : 1 }}>
+            <div
+              key={c.id}
+              id={`focus-contact-${c.id}`}
+              className={`contact-item ${highlighted === `contact-${c.id}` ? 'focus-highlight' : ''}`}
+              onClick={() => openEditContact(c)}
+              style={{ cursor: 'pointer', opacity: c.done ? 0.55 : 1 }}
+            >
               <div
                 className={`task-check ${c.done ? 'done' : ''}`}
                 onClick={e => { e.stopPropagation(); update('contacts', c.id, { done: !c.done }) }}

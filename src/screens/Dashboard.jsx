@@ -12,7 +12,7 @@ function daysUntil(dateStr) {
 
 const HEBREW_DAYS = ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת']
 
-export default function Dashboard({ data, saveMeta, members, switchTab }) {
+export default function Dashboard({ data, saveMeta, members, switchTab, focusEntry }) {
   const { tasks, settings, events, contacts } = data
   const [dateInput, setDateInput] = useState(settings.moveDate || '')
   const [listLimit, setListLimit] = useState(5)
@@ -152,7 +152,7 @@ export default function Dashboard({ data, saveMeta, members, switchTab }) {
           {visibleUrgent.map(t => {
             const assigneeName = t.assignee === 'all' ? 'כולם' : members[t.assignee] ? (members[t.assignee]).split(' ')[0] : ''
             return (
-              <div key={t.id} className="priority-row" onClick={() => switchTab('apartments')}>
+              <div key={t.id} className="priority-row" onClick={() => focusEntry('apartments', { type: 'task', id: t.id })}>
                 <strong>{t.name}</strong>
                 {assigneeName && <span className="assignee-chip">{assigneeName}</span>}
                 <em>
@@ -179,7 +179,12 @@ export default function Dashboard({ data, saveMeta, members, switchTab }) {
             const dayName = HEBREW_DAYS[d.getDay()]
             const dateStr = d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
             return (
-              <div key={e._type + e.id} className="event-item" onClick={() => switchTab(e._type === 'contact' ? 'apartments' : 'calendar')} style={{ cursor: 'pointer' }}>
+              <div
+                key={e._type + e.id}
+                className="event-item"
+                onClick={() => focusEntry(e._type === 'contact' ? 'apartments' : 'calendar', { type: e._type, id: e.id })}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="event-date-block">
                   <div className="event-day">{d.getDate()}</div>
                   <div className="event-month">{dayName}</div>
