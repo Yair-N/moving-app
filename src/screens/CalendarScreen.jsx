@@ -79,7 +79,7 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
         </div>
       ) : sorted.length === 0 ? null : (
         Object.values(grouped).map(group => (
-          <div key={group.label}>
+          <div key={group.label} className="event-group">
             <div className="section-divider">{group.label}</div>
             <div className="card">
               {group.events.map(ev => {

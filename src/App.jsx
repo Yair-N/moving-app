@@ -184,25 +184,28 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="user-row">
-        <button className="btn-logout" onClick={logout}>יציאה</button>
-        <span>{user.displayName?.split(' ')[0]}</span>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto' }}
-          onClick={() => navigator.clipboard?.writeText(householdId)}
-          title="לחץ להעתקה">
-          קוד: {householdId}
-        </span>
-      </div>
+      <div className="main-area">
+        <div className="user-row">
+          <button className="btn-logout" onClick={logout}>יציאה</button>
+          <span>{user.displayName?.split(' ')[0]}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto' }}
+            onClick={() => navigator.clipboard?.writeText(householdId)}
+            title="לחץ להעתקה">
+            קוד: {householdId}
+          </span>
+        </div>
 
-      <div className={`page-content ${slideDir || ''}`} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-        {tab === 'dashboard'  && <Dashboard  {...screenProps} />}
-        {tab === 'apartments' && <Apartments {...screenProps} />}
-        {tab === 'packing'    && <Packing    {...screenProps} />}
-        {tab === 'calendar'   && <CalendarScreen {...screenProps} />}
-        {tab === 'shopping'   && <Shopping   {...screenProps} />}
+        <div className={`page-content ${slideDir || ''}`} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+          {tab === 'dashboard'  && <Dashboard  {...screenProps} />}
+          {tab === 'apartments' && <Apartments {...screenProps} />}
+          {tab === 'packing'    && <Packing    {...screenProps} />}
+          {tab === 'calendar'   && <CalendarScreen {...screenProps} />}
+          {tab === 'shopping'   && <Shopping   {...screenProps} />}
+        </div>
       </div>
 
       <nav className="bottom-nav">
+        <div className="nav-brand">🏠 מעבר דירה</div>
         {TABS.map(t => (
           <button
             key={t.id}
