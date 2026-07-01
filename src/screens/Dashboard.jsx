@@ -12,7 +12,7 @@ function daysUntil(dateStr) {
 
 const HEBREW_DAYS = ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת']
 
-export default function Dashboard({ data, saveMeta, members }) {
+export default function Dashboard({ data, saveMeta, members, switchTab }) {
   const { tasks, settings, events, contacts } = data
   const [dateInput, setDateInput] = useState(settings.moveDate || '')
 
@@ -72,7 +72,7 @@ export default function Dashboard({ data, saveMeta, members }) {
           {urgent.map(t => {
             const assigneeName = t.assignee === 'all' ? 'כולם' : members[t.assignee] ? (members[t.assignee]).split(' ')[0] : ''
             return (
-              <div key={t.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
+              <div key={t.id} onClick={() => switchTab('apartments')} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 14, cursor: 'pointer' }}>
                 <strong>{t.name}</strong>
                 {assigneeName && <span style={{ color: 'var(--text-secondary)', marginRight: 8, fontSize: 12 }}>({assigneeName})</span>}
                 <span style={{ color: 'var(--urgent)', marginRight: 8, fontSize: 12 }}>
@@ -94,7 +94,7 @@ export default function Dashboard({ data, saveMeta, members }) {
             const dayName = HEBREW_DAYS[d.getDay()]
             const dateStr = d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
             return (
-              <div key={e._type + e.id} className="event-item">
+              <div key={e._type + e.id} className="event-item" onClick={() => switchTab(e._type === 'contact' ? 'apartments' : 'calendar')} style={{ cursor: 'pointer' }}>
                 <div className="event-date-block">
                   <div className="event-day">{d.getDate()}</div>
                   <div className="event-month">{dayName}</div>
