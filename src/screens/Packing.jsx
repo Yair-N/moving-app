@@ -67,7 +67,12 @@ export default function Packing({ data, add, update, remove, saveMeta, members, 
   return (
     <>
       <div className="page-header">
-        <h1>📦 אריזה</h1>
+        <p className="page-kicker">מעקב ארגזים</p>
+        <h1>אריזה</h1>
+      </div>
+
+      <div className="desktop-actions">
+        <button className="btn btn-primary" onClick={openAdd}>הוסף ארגז</button>
       </div>
 
       {boxes.length > 0 && (

@@ -14,10 +14,10 @@ import HouseholdSetup from './screens/HouseholdSetup'
 
 const TABS = [
   { id: 'dashboard', label: 'לוח בקרה', icon: '⊞' },
-  { id: 'apartments', label: 'דירות', icon: '🏠' },
-  { id: 'packing', label: 'אריזה', icon: '📦' },
-  { id: 'calendar', label: 'לוח', icon: '📅' },
-  { id: 'shopping', label: 'קניות', icon: '🛒' },
+  { id: 'apartments', label: 'דירות', icon: '⌂' },
+  { id: 'packing', label: 'אריזה', icon: '▣' },
+  { id: 'calendar', label: 'לוח', icon: '◷' },
+  { id: 'shopping', label: 'קניות', icon: '₪' },
 ]
 
 function AuthScreen({ onLogin }) {
@@ -72,6 +72,7 @@ export default function App() {
   const [tab, setTab] = useState('dashboard')
   const [slideDir, setSlideDir] = useState(null)
   const [members, setMembers] = useState({})
+  const [codeCopied, setCodeCopied] = useState(false)
   const [data, setData] = useState({
     tasks: [],
     contacts: [],
@@ -174,6 +175,15 @@ export default function App() {
     if (window.confirm('בטוח?')) deleteDoc(doc(db, 'households', householdId, col, id))
   }
   const saveMeta = (docName, obj) => setDoc(doc(db, 'households', householdId, 'meta', docName), obj, { merge: true })
+  const copyHouseholdCode = async () => {
+    try {
+      await navigator.clipboard?.writeText(householdId)
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 1800)
+    } catch {
+      window.prompt('העתק את קוד ההזמנה', householdId)
+    }
+  }
 
   if (authLoading) return <div className="auth-screen"><div className="auth-emoji">🏠</div></div>
   if (!user) return <AuthScreen onLogin={loginWithGoogle} />
@@ -186,13 +196,16 @@ export default function App() {
     <div className="app">
       <div className="main-area">
         <div className="user-row">
-          <button className="btn-logout" onClick={logout}>יציאה</button>
-          <span>{user.displayName?.split(' ')[0]}</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto' }}
-            onClick={() => navigator.clipboard?.writeText(householdId)}
+          <div className="user-identity">
+            <span className="user-avatar">{user.displayName?.charAt(0) || 'מ'}</span>
+            <span>{user.displayName?.split(' ')[0]}</span>
+          </div>
+          <button className={`household-chip ${codeCopied ? 'copied' : ''}`}
+            onClick={copyHouseholdCode}
             title="לחץ להעתקה">
-            קוד: {householdId}
-          </span>
+            {codeCopied ? 'הועתק' : `קוד: ${householdId}`}
+          </button>
+          <button className="btn-logout" onClick={logout}>יציאה</button>
         </div>
 
         <div className={`page-content ${slideDir || ''}`} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
@@ -205,7 +218,10 @@ export default function App() {
       </div>
 
       <nav className="bottom-nav">
-        <div className="nav-brand">🏠 מעבר דירה</div>
+        <button className="nav-brand" onClick={() => switchTab('dashboard', 'slide-right')}>
+          <span className="brand-mark">⌂</span>
+          <span>מעבר דירה</span>
+        </button>
         {TABS.map(t => (
           <button
             key={t.id}

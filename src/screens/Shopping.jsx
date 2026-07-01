@@ -52,11 +52,17 @@ export default function Shopping({ data, add, update, remove, tab }) {
   return (
     <>
       <div className="page-header">
-        <h1>🛒 קניות ומכירות</h1>
+        <p className="page-kicker">תקציב ופריטים</p>
+        <h1>קניות ומכירות</h1>
+      </div>
+
+      <div className="desktop-actions">
+        <button className="btn btn-primary" onClick={openAddShop}>הוסף פריט לקנייה</button>
+        <button className="btn btn-outline" onClick={openAddSale}>הוסף פריט למכירה</button>
       </div>
 
       <div className="card">
-        <div className="card-title">פריטים למכירה/מסירה 💰</div>
+        <div className="card-title">פריטים למכירה/מסירה</div>
         {saleItems.length === 0 ? (
           <p className="empty-state">אין פריטים למכירה עדיין</p>
         ) : (
@@ -80,7 +86,7 @@ export default function Shopping({ data, add, update, remove, tab }) {
       </div>
 
       <div className="card">
-        <div className="card-title">רשימת קניות לבית 🛍️</div>
+        <div className="card-title">רשימת קניות לבית</div>
 
         {shopTotal > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 13, color: 'var(--text-muted)' }}>

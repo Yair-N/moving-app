@@ -85,7 +85,8 @@ export default function Apartments({ data, add, update, remove, user, members, t
   return (
     <>
       <div className="page-header">
-        <h1>🏠 דירות</h1>
+        <p className="page-kicker">משימות וספקים</p>
+        <h1>דירות</h1>
       </div>
 
       <div className="tab-toggle">
@@ -106,6 +107,11 @@ export default function Apartments({ data, add, update, remove, user, members, t
             👤 {firstName(name)}
           </button>
         ))}
+      </div>
+
+      <div className="desktop-actions">
+        <button className="btn btn-primary" onClick={openAddTask}>הוסף משימה</button>
+        <button className="btn btn-outline" onClick={openAddContact}>הוסף איש קשר</button>
       </div>
 
       <div className="card">
@@ -131,7 +137,7 @@ export default function Apartments({ data, add, update, remove, user, members, t
 
       <div className="card">
         <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          אנשי קשר ומתקינים 📞
+          אנשי קשר ומתקינים
           <button className="btn btn-outline" onClick={openAddContact} style={{ padding: '4px 12px', fontSize: 12 }}>+ הוסף</button>
         </div>
         {contacts.length === 0 ? (

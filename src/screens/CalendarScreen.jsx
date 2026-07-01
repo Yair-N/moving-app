@@ -70,7 +70,12 @@ export default function CalendarScreen({ data, add, update, remove, tab }) {
   return (
     <>
       <div className="page-header">
-        <h1>📅 לוח זמנים</h1>
+        <p className="page-kicker">תיאומים ומועדים</p>
+        <h1>לוח זמנים</h1>
+      </div>
+
+      <div className="desktop-actions">
+        <button className="btn btn-primary" onClick={openAdd}>הוסף אירוע</button>
       </div>
 
       {sorted.length === 0 && doneSorted.length === 0 ? (
