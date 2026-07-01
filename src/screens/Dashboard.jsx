@@ -13,7 +13,7 @@ function daysUntil(dateStr) {
 const HEBREW_DAYS = ['יום א׳', 'יום ב׳', 'יום ג׳', 'יום ד׳', 'יום ה׳', 'יום ו׳', 'שבת']
 
 export default function Dashboard({ data, saveMeta, members }) {
-  const { tasks, settings, events } = data
+  const { tasks, settings, events, contacts } = data
   const [dateInput, setDateInput] = useState(settings.moveDate || '')
 
   useEffect(() => {
@@ -28,15 +28,31 @@ export default function Dashboard({ data, saveMeta, members }) {
     .filter(t => !t.done && t.dueDate && daysUntil(t.dueDate) <= 7 && daysUntil(t.dueDate) >= 0)
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
 
-  // Upcoming events (next 14 days, not done)
-  const upcomingEvents = events
-    .filter(e => {
-      if (e.done) return false
-      const d = daysUntil(e.date?.split('T')[0])
+  // Upcoming events + contact meetings (next 14 days, not done)
+  const upcomingContacts = contacts
+    .filter(c => {
+      if (c.done) return false
+      const dateStr = (c.meeting || '').split(' ')[0]
+      const d = daysUntil(dateStr)
       return d !== null && d >= 0 && d <= 14
     })
+    .map(c => {
+      const parts = (c.meeting || '').split(' ')
+      return { _type: 'contact', id: c.id, title: c.name, date: parts[0], time: parts[1] || '', location: c.profession || '' }
+    })
+
+  const upcomingEvents = [
+    ...events
+      .filter(e => {
+        if (e.done) return false
+        const d = daysUntil(e.date?.split('T')[0])
+        return d !== null && d >= 0 && d <= 14
+      })
+      .map(e => ({ _type: 'event', ...e })),
+    ...upcomingContacts
+  ]
     .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 3)
+    .slice(0, 5)
 
   function saveDate(val) {
     setDateInput(val)
@@ -73,17 +89,18 @@ export default function Dashboard({ data, saveMeta, members }) {
         <div className="card">
           <div className="card-title">אירועים קרובים 📅</div>
           {upcomingEvents.map(e => {
-            const d = new Date(e.date)
+            const [y, m, day] = (e.date || '').split('-').map(Number)
+            const d = new Date(y, m - 1, day)
             const dayName = HEBREW_DAYS[d.getDay()]
             const dateStr = d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })
             return (
-              <div key={e.id} className="event-item">
+              <div key={e._type + e.id} className="event-item">
                 <div className="event-date-block">
                   <div className="event-day">{d.getDate()}</div>
                   <div className="event-month">{dayName}</div>
                 </div>
                 <div className="event-body">
-                  <div className="event-title">{e.title}</div>
+                  <div className="event-title">{e._type === 'contact' ? '📞 ' : ''}{e.title}</div>
                   <div className="event-time">
                     {dateStr}{e.time ? ` • ${e.time}` : ''}{e.location ? ` • ${e.location}` : ''}
                   </div>
